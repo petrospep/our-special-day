@@ -186,20 +186,38 @@
    * for legibility. Transitions are slow so the page feels like one
    * continuous watercolor as you scroll.
    */
+  /* Section palette wash.
+   * Each section keeps a transparent background and paints its color via
+   * ::before, which is faded to 0 at the top & bottom edges. Because adjacent
+   * sections both fade to nothing where they meet, the cream page background
+   * shows through and you get a smooth crossfade instead of a hard seam.
+   */
   .section-theme {
     position: relative;
-    transition:
-      background-color 1.2s ease,
-      color 1.2s ease;
+    background-color: transparent;
   }
   .section-theme::before {
     content: "";
     position: absolute;
-    inset: 0;
+    inset: -8% 0;            /* extend past edges so the wash overlaps neighbours */
     pointer-events: none;
     z-index: 0;
-    opacity: 0.85;
-    transition: background 1.2s ease, opacity 1.2s ease;
+    opacity: 0.9;
+    /* Vertical alpha mask: invisible at top/bottom, full strength in the middle */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 22%,
+      black 78%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 22%,
+      black 78%,
+      transparent 100%
+    );
   }
   .section-theme > * {
     position: relative;
@@ -215,52 +233,42 @@
   }
 
   /* Events — sage / olive grove */
-  .theme-events {
-    background-color: color-mix(in oklab, var(--sage) 18%, var(--cream));
-  }
   .theme-events::before {
     background:
-      radial-gradient(50% 40% at 90% 15%, color-mix(in oklab, var(--sage) 40%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 10% 80%, color-mix(in oklab, var(--lemon) 28%, transparent), transparent 70%);
+      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 75%),
+      radial-gradient(50% 40% at 90% 15%, color-mix(in oklab, var(--sage) 38%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 10% 80%, color-mix(in oklab, var(--lemon) 24%, transparent), transparent 70%);
   }
 
   /* Music — sun-soaked lemon */
-  .theme-music {
-    background-color: color-mix(in oklab, var(--lemon) 22%, var(--cream));
-  }
   .theme-music::before {
     background:
-      radial-gradient(55% 45% at 15% 20%, color-mix(in oklab, var(--lemon) 45%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 90% 85%, color-mix(in oklab, var(--coral) 28%, transparent), transparent 70%);
+      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--lemon) 26%, transparent), transparent 75%),
+      radial-gradient(55% 45% at 15% 20%, color-mix(in oklab, var(--lemon) 42%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 90% 85%, color-mix(in oklab, var(--coral) 26%, transparent), transparent 70%);
   }
 
   /* Gifts — coral blush */
-  .theme-gifts {
-    background-color: color-mix(in oklab, var(--coral) 18%, var(--cream));
-  }
   .theme-gifts::before {
     background:
-      radial-gradient(55% 45% at 85% 20%, color-mix(in oklab, var(--coral) 38%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 10% 80%, color-mix(in oklab, var(--sage) 25%, transparent), transparent 70%);
+      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--coral) 22%, transparent), transparent 75%),
+      radial-gradient(55% 45% at 85% 20%, color-mix(in oklab, var(--coral) 36%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 10% 80%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
   }
 
   /* FAQ — soft sage & cream, calm reading tone */
-  .theme-faq {
-    background-color: color-mix(in oklab, var(--sage) 12%, var(--cream));
-  }
   .theme-faq::before {
     background:
-      radial-gradient(45% 40% at 12% 15%, color-mix(in oklab, var(--sage) 32%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 88% 85%, color-mix(in oklab, var(--lemon) 22%, transparent), transparent 70%);
+      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 12% 15%, color-mix(in oklab, var(--sage) 30%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 88% 85%, color-mix(in oklab, var(--lemon) 20%, transparent), transparent 70%);
   }
 
   /* RSVP — deep olive on cream, the "closing" tone */
-  .theme-rsvp {
-    background-color: color-mix(in oklab, var(--olive) 10%, var(--cream));
-  }
   .theme-rsvp::before {
     background:
-      radial-gradient(60% 50% at 50% 0%, color-mix(in oklab, var(--coral) 25%, transparent), transparent 70%),
-      radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--sage) 28%, transparent), transparent 70%);
+      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--olive) 14%, transparent), transparent 75%),
+      radial-gradient(60% 50% at 50% 0%, color-mix(in oklab, var(--coral) 22%, transparent), transparent 70%),
+      radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--sage) 26%, transparent), transparent 70%);
   }
 }
