@@ -8,6 +8,7 @@ import {
   AccordionTrigger,
 } from "../components/ui/accordion";
 import { MapPin, Clock, Shirt, Music, Heart } from "lucide-react";
+import { Reveal } from "../components/Reveal";
 import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
