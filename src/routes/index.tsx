@@ -118,9 +118,8 @@ function EventsSection() {
       subtitle="Two moments to share with the people we love most."
     >
       <div className="space-y-8 mt-8">
-        {events.map((e) => (
-          <article
-            key={e.title}
+        {events.map((e, i) => (
+          <Reveal key={e.title} as="article" delay={i * 150}
             className="relative bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12"
           >
             <p className="eyebrow">{e.time}</p>
@@ -145,7 +144,7 @@ function EventsSection() {
             <p className="display-italic text-lg text-olive/80 mt-8 border-t border-olive/15 pt-6">
               {e.note}
             </p>
-          </article>
+          </Reveal>
         ))}
       </div>
     </PageShell>
