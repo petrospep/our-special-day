@@ -44,7 +44,7 @@ function Index() {
 /* ---------------- Hero ---------------- */
 function Hero() {
   return (
-    <section id="home" className="relative scroll-mt-20">
+    <section id="home" className="relative scroll-mt-20 section-theme theme-hero">
       <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-24">
         <div className="frame-border relative py-24 md:py-32 px-6 text-center">
           <div className="mx-auto mb-10 h-32 w-32 rounded-full border border-olive/30 bg-cream/60 backdrop-blur-sm flex items-center justify-center">
@@ -109,6 +109,7 @@ function EventsSection() {
   return (
     <PageShell
       id="events"
+      theme="events"
       eyebrow="The Day"
       title={
         <>
@@ -189,6 +190,7 @@ function MusicSection() {
   return (
     <PageShell
       id="music"
+      theme="music"
       eyebrow="Music"
       title="Keep us dancing"
       subtitle="What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
@@ -218,6 +220,7 @@ function GiftsSection() {
   return (
     <PageShell
       id="gifts"
+      theme="gifts"
       eyebrow="With Love"
       title="A little note on gifts"
       subtitle="Your presence at our wedding is the greatest gift of all."
@@ -283,6 +286,7 @@ function FaqSection() {
   return (
     <PageShell
       id="faq"
+      theme="faq"
       eyebrow="Good to Know"
       title="FAQs"
       subtitle="Everything you might be wondering about our day."
@@ -357,6 +361,7 @@ function RsvpSection() {
     return (
       <PageShell
         id="rsvp"
+        theme="rsvp"
         eyebrow="Thank You"
         title={done === "yes" ? "We can't wait" : "We'll miss you"}
         subtitle={
@@ -375,6 +380,7 @@ function RsvpSection() {
   return (
     <PageShell
       id="rsvp"
+      theme="rsvp"
       eyebrow="Kindly Respond"
       title="RSVP"
       subtitle="Please let us know by 1st June 2026."

@@ -6,11 +6,14 @@ interface Props {
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   children: React.ReactNode;
+  /** Section palette: tints background + watercolor wash. */
+  theme?: "events" | "music" | "gifts" | "faq" | "rsvp";
 }
 
-export function PageShell({ id, eyebrow, title, subtitle, children }: Props) {
+export function PageShell({ id, eyebrow, title, subtitle, children, theme }: Props) {
+  const themeClass = theme ? `section-theme theme-${theme}` : "";
   return (
-    <section id={id} className="relative scroll-mt-20">
+    <section id={id} className={`relative scroll-mt-20 ${themeClass}`}>
       <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-8 text-center">
         <Reveal>
           {eyebrow && <p className="eyebrow mb-4">{eyebrow}</p>}
