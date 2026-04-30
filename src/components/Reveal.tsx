@@ -14,39 +14,59 @@ export function Reveal({
   className = "",
   delay = 0,
   as = "div",
+  style,
   ...rest
 }: Props) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
       setShown(true);
       return;
     }
+
     const el = ref.current;
     if (!el) return;
+
+    // If IntersectionObserver isn't available, just show.
+    if (typeof IntersectionObserver === "undefined") {
+      setShown(true);
+      return;
+    }
+
+    // Fallback safety net: ensure content is shown after 1.5s no matter what
+    // (prevents content being permanently hidden if observer misses).
+    const safety = window.setTimeout(() => setShown(true), 1500);
+
     const obs = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
             setShown(true);
-            obs.unobserve(entry.target);
+            window.clearTimeout(safety);
+            obs.disconnect();
           }
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" }
+      { threshold: 0.1, rootMargin: "0px 0px -5% 0px" }
     );
     obs.observe(el);
-    return () => obs.disconnect();
+
+    return () => {
+      window.clearTimeout(safety);
+      obs.disconnect();
+    };
   }, []);
 
   const Tag = as as React.ElementType;
   return (
     <Tag
       ref={ref}
-      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
+      style={{ ...style, transitionDelay: shown ? `${delay}ms` : "0ms" }}
       className={`reveal ${shown ? "reveal-in" : ""} ${className}`}
       {...rest}
     >
