@@ -1,33 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&family=Inter+Tight:wght@300..700&display=swap");
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-
-@layer base {
-  /* Elegant serif display + refined body */
-  @font-face {
-    font-family: "Cormorant";
-    src: url("https://fonts.gstatic.com/s/cormorantgaramond/v16/co3bmX5slCNuHLi8bLeY9MK7whWMhyjQAllvuQWJ5heb_w.woff2") format("woff2");
-    font-weight: 300 700;
-    font-style: normal;
-    font-display: swap;
-  }
-  @font-face {
-    font-family: "Cormorant";
-    src: url("https://fonts.gstatic.com/s/cormorantgaramond/v16/co3YmX5slCNuHLi8bLeY9MK7whWMhyjYrEPjuw.woff2") format("woff2");
-    font-weight: 300 700;
-    font-style: italic;
-    font-display: swap;
-  }
-  @font-face {
-    font-family: "Inter Tight";
-    src: url("https://fonts.gstatic.com/s/intertight/v7/NGSnv5HMAFg6IuGlBNMjxJEL2VmU3NS7Z2JR.woff2") format("woff2");
-    font-weight: 300 700;
-    font-style: normal;
-    font-display: swap;
-  }
-}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
