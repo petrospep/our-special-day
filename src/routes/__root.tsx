@@ -29,11 +29,11 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Petros & Nikki — 25 July 2026, Athens" },
+      { name: "description", content: "Save the date. Join Petros & Nikki for their wedding in Athens, Greece on 25 July 2026." },
+      { name: "author", content: "Petros & Nikki" },
+      { property: "og:title", content: "Petros & Nikki — 25 July 2026" },
+      { property: "og:description", content: "Save the date. Athens, Greece — 25 July 2026." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -64,6 +64,19 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { SiteHeader } from "../components/SiteHeader";
+import { SiteFooter } from "../components/SiteFooter";
+import { Toaster } from "../components/ui/sonner";
+
 function RootComponent() {
-  return <Outlet />;
+  return (
+    <>
+      <SiteHeader />
+      <main>
+        <Outlet />
+      </main>
+      <SiteFooter />
+      <Toaster />
+    </>
+  );
 }
