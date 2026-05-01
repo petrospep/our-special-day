@@ -22,14 +22,14 @@ function Index() {
   return (
     <div className="relative overflow-hidden">
       {/* Floating watercolor blobs sprinkled down the page */}
-      <Watercolor blob="coral" className="-top-24 -left-20 w-[34rem] opacity-80 -rotate-12" />
-      <Watercolor blob="yellow" className="top-10 right-[-6rem] w-[36rem] opacity-85" />
-      <Watercolor blob="green" className="top-[28rem] right-[-4rem] w-[24rem] opacity-60" />
-      <Watercolor blob="yellow" className="top-[60rem] -left-24 w-[28rem] opacity-70" />
-      <Watercolor blob="coral" className="top-[95rem] right-[-5rem] w-[26rem] opacity-60 -rotate-6" />
-      <Watercolor blob="green" className="top-[130rem] -left-16 w-[24rem] opacity-55" />
-      <Watercolor blob="yellow" className="top-[170rem] right-[-6rem] w-[28rem] opacity-65" />
-      <Watercolor blob="coral" className="top-[210rem] -left-20 w-[22rem] opacity-50" />
+      <Watercolor blob="coral" className="-top-24 -left-20 w-[34rem] opacity-100 -rotate-12" />
+      <Watercolor blob="yellow" className="top-10 right-[-6rem] w-[36rem] opacity-100" />
+      <Watercolor blob="green" className="top-[28rem] right-[-4rem] w-[24rem] opacity-95" />
+      <Watercolor blob="yellow" className="top-[60rem] -left-24 w-[28rem] opacity-95" />
+      <Watercolor blob="coral" className="top-[95rem] right-[-5rem] w-[26rem] opacity-95 -rotate-6" />
+      <Watercolor blob="green" className="top-[130rem] -left-16 w-[24rem] opacity-90" />
+      <Watercolor blob="yellow" className="top-[170rem] right-[-6rem] w-[28rem] opacity-95" />
+      <Watercolor blob="coral" className="top-[210rem] -left-20 w-[22rem] opacity-90" />
 
       <Hero />
       <EventsSection />
