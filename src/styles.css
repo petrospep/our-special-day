@@ -44,21 +44,21 @@
 :root {
   --radius: 0.25rem;
 
-  /* Wedding watercolor palette */
-  --background: oklch(0.992 0.008 95);          /* warm cream */
+  /* Wedding watercolor palette — bold, saturated, painterly */
+  --background: oklch(0.995 0.003 95);          /* near-white paper */
   --foreground: oklch(0.32 0.05 110);           /* deep olive ink */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.32 0.05 110);
-  --popover: oklch(0.992 0.008 95);
+  --popover: oklch(0.995 0.003 95);
   --popover-foreground: oklch(0.32 0.05 110);
 
   --primary: oklch(0.42 0.07 110);              /* olive */
-  --primary-foreground: oklch(0.992 0.008 95);
+  --primary-foreground: oklch(0.995 0.003 95);
   --secondary: oklch(0.95 0.04 90);
   --secondary-foreground: oklch(0.32 0.05 110);
   --muted: oklch(0.95 0.02 95);
   --muted-foreground: oklch(0.5 0.04 105);
-  --accent: oklch(0.85 0.09 60);                /* coral accent */
+  --accent: oklch(0.78 0.16 38);                /* vivid coral */
   --accent-foreground: oklch(0.32 0.05 110);
   --destructive: oklch(0.55 0.18 28);
   --destructive-foreground: oklch(0.99 0 0);
@@ -66,12 +66,13 @@
   --input: oklch(0.42 0.07 110 / 25%);
   --ring: oklch(0.42 0.07 110);
 
-  --coral: oklch(0.82 0.1 45);
-  --lemon: oklch(0.92 0.13 100);
-  --sage: oklch(0.85 0.08 130);
+  /* Saturated blob colors pulled from the reference watercolor */
+  --coral: oklch(0.78 0.16 38);                 /* peach / salmon */
+  --lemon: oklch(0.93 0.19 102);                /* vivid lemon */
+  --sage:  oklch(0.78 0.20 138);                /* leaf green */
   --olive: oklch(0.42 0.07 110);
-  --cream: oklch(0.992 0.008 95);
-  --ink: oklch(0.28 0.05 110);
+  --cream: oklch(0.995 0.003 95);
+  --ink:   oklch(0.28 0.05 110);
 }
 
 .dark {
@@ -199,23 +200,24 @@
   .section-theme::before {
     content: "";
     position: absolute;
-    inset: -8% 0;            /* extend past edges so the wash overlaps neighbours */
+    inset: -10% 0;           /* extend past edges so the wash overlaps neighbours */
     pointer-events: none;
     z-index: 0;
-    opacity: 0.9;
-    /* Vertical alpha mask: invisible at top/bottom, full strength in the middle */
+    opacity: 1;
+    /* Vertical alpha mask: invisible at top/bottom, full strength in the middle.
+       Tighter mask = bolder painted band, softer fade where sections meet. */
     -webkit-mask-image: linear-gradient(
       to bottom,
       transparent 0%,
-      black 22%,
-      black 78%,
+      black 18%,
+      black 82%,
       transparent 100%
     );
     mask-image: linear-gradient(
       to bottom,
       transparent 0%,
-      black 22%,
-      black 78%,
+      black 18%,
+      black 82%,
       transparent 100%
     );
   }
@@ -224,51 +226,58 @@
     z-index: 1;
   }
 
-  /* Hero — warm cream with coral & lemon haze (matches the invitation) */
+  /* Hero — bold coral, lemon and leaf-green washes on white paper */
   .theme-hero::before {
     background:
-      radial-gradient(60% 50% at 15% 20%, color-mix(in oklab, var(--coral) 28%, transparent), transparent 70%),
-      radial-gradient(55% 45% at 85% 10%, color-mix(in oklab, var(--lemon) 35%, transparent), transparent 70%),
-      radial-gradient(70% 60% at 80% 90%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+      radial-gradient(48% 42% at 12% 18%, color-mix(in oklab, var(--coral) 78%, transparent), transparent 72%),
+      radial-gradient(52% 46% at 86% 12%, color-mix(in oklab, var(--lemon) 82%, transparent), transparent 72%),
+      radial-gradient(34% 30% at 78% 22%, color-mix(in oklab, var(--sage) 78%, transparent), transparent 70%),
+      radial-gradient(46% 40% at 18% 82%, color-mix(in oklab, var(--lemon) 70%, transparent), transparent 72%),
+      radial-gradient(40% 36% at 82% 88%, color-mix(in oklab, var(--coral) 60%, transparent), transparent 72%);
   }
 
-  /* Events — sage / olive grove */
+  /* Events — vivid sage / lemon grove */
   .theme-events::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 75%),
-      radial-gradient(50% 40% at 90% 15%, color-mix(in oklab, var(--sage) 38%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 10% 80%, color-mix(in oklab, var(--lemon) 24%, transparent), transparent 70%);
+      radial-gradient(50% 44% at 88% 18%, color-mix(in oklab, var(--sage) 80%, transparent), transparent 72%),
+      radial-gradient(46% 40% at 14% 30%, color-mix(in oklab, var(--lemon) 72%, transparent), transparent 72%),
+      radial-gradient(44% 38% at 78% 82%, color-mix(in oklab, var(--lemon) 68%, transparent), transparent 72%),
+      radial-gradient(38% 34% at 22% 86%, color-mix(in oklab, var(--sage) 70%, transparent), transparent 72%);
   }
 
-  /* Music — sun-soaked lemon */
+  /* Music — sun-soaked lemon with coral pop */
   .theme-music::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--lemon) 26%, transparent), transparent 75%),
-      radial-gradient(55% 45% at 15% 20%, color-mix(in oklab, var(--lemon) 42%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 90% 85%, color-mix(in oklab, var(--coral) 26%, transparent), transparent 70%);
+      radial-gradient(54% 46% at 18% 22%, color-mix(in oklab, var(--lemon) 88%, transparent), transparent 72%),
+      radial-gradient(46% 40% at 84% 18%, color-mix(in oklab, var(--coral) 72%, transparent), transparent 72%),
+      radial-gradient(40% 36% at 78% 82%, color-mix(in oklab, var(--lemon) 78%, transparent), transparent 72%),
+      radial-gradient(36% 32% at 22% 86%, color-mix(in oklab, var(--sage) 60%, transparent), transparent 72%);
   }
 
-  /* Gifts — coral blush */
+  /* Gifts — coral blush with leaf accents */
   .theme-gifts::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--coral) 22%, transparent), transparent 75%),
-      radial-gradient(55% 45% at 85% 20%, color-mix(in oklab, var(--coral) 36%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 10% 80%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+      radial-gradient(50% 44% at 86% 22%, color-mix(in oklab, var(--coral) 82%, transparent), transparent 72%),
+      radial-gradient(46% 40% at 14% 28%, color-mix(in oklab, var(--lemon) 68%, transparent), transparent 72%),
+      radial-gradient(40% 36% at 20% 84%, color-mix(in oklab, var(--coral) 70%, transparent), transparent 72%),
+      radial-gradient(34% 30% at 80% 86%, color-mix(in oklab, var(--sage) 64%, transparent), transparent 72%);
   }
 
-  /* FAQ — soft sage & cream, calm reading tone */
+  /* FAQ — sage forward, lemon counterpoint */
   .theme-faq::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 75%),
-      radial-gradient(45% 40% at 12% 15%, color-mix(in oklab, var(--sage) 30%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 88% 85%, color-mix(in oklab, var(--lemon) 20%, transparent), transparent 70%);
+      radial-gradient(50% 44% at 14% 18%, color-mix(in oklab, var(--sage) 76%, transparent), transparent 72%),
+      radial-gradient(46% 40% at 86% 24%, color-mix(in oklab, var(--lemon) 70%, transparent), transparent 72%),
+      radial-gradient(42% 38% at 84% 84%, color-mix(in oklab, var(--sage) 70%, transparent), transparent 72%),
+      radial-gradient(38% 34% at 18% 86%, color-mix(in oklab, var(--coral) 56%, transparent), transparent 72%);
   }
 
-  /* RSVP — deep olive on cream, the "closing" tone */
+  /* RSVP — closing chord: all four colours, balanced */
   .theme-rsvp::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--olive) 14%, transparent), transparent 75%),
-      radial-gradient(60% 50% at 50% 0%, color-mix(in oklab, var(--coral) 22%, transparent), transparent 70%),
-      radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--sage) 26%, transparent), transparent 70%);
+      radial-gradient(46% 40% at 16% 18%, color-mix(in oklab, var(--coral) 76%, transparent), transparent 72%),
+      radial-gradient(46% 40% at 84% 18%, color-mix(in oklab, var(--lemon) 80%, transparent), transparent 72%),
+      radial-gradient(44% 38% at 18% 84%, color-mix(in oklab, var(--sage) 74%, transparent), transparent 72%),
+      radial-gradient(44% 38% at 84% 84%, color-mix(in oklab, var(--coral) 64%, transparent), transparent 72%);
   }
 }
