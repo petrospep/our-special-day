@@ -9,16 +9,26 @@ import {
 } from "../components/ui/accordion";
 import { MapPin, Clock, Shirt, Music, Heart } from "lucide-react";
 import { Reveal } from "../components/Reveal";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { callFunction } from "@/lib/functions";
+import { RsvpContent } from "./rsvp";
+import type { ValidateInviteResponse } from "@/lib/rsvp-types";
+import { inviteCodeSchema } from "@/lib/rsvp-validation";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    code: typeof search.code === "string" ? search.code : undefined,
+  }),
   component: Index,
 });
 
 function Index() {
+  const search = Route.useSearch();
+  const inviteCode = useMemo(() => (search.code ?? "").trim().toLowerCase(), [search.code]);
+
   return (
     <div className="relative overflow-hidden">
       {/* Floating watercolor blobs sprinkled down the page */}
@@ -36,7 +46,8 @@ function Index() {
 
       <Hero />
       <EventsSection />
-      <MusicSection />
+      <MusicSection inviteCode={inviteCode} />
+      <RsvpContent initialCodeFromUrl={inviteCode} />
       <GiftsSection />
       <FaqSection />
     </div>
@@ -69,7 +80,7 @@ function Hero() {
           </div>
           <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
             <Link
-              to="/rsvp"
+              to="/" hash="rsvp"
               className="inline-flex items-center justify-center rounded-sm bg-olive px-8 py-3 text-sm tracking-[0.2em] uppercase text-cream hover:bg-olive/90 transition"
             >
               RSVP
@@ -162,7 +173,7 @@ const songSchema = z.object({
   artist: z.string().trim().min(1, "Artist is required").max(150),
 });
 
-function MusicSection() {
+function MusicSection({ inviteCode }: { inviteCode: string }) {
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -178,7 +189,26 @@ function MusicSection() {
       toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
+    const validCode = inviteCodeSchema.safeParse(inviteCode);
+    if (!validCode.success) {
+      toast.error("A valid invite code is required to request music.");
+      return;
+    }
+
     setSubmitting(true);
+    try {
+      const validation = await callFunction<ValidateInviteResponse>("validate-invite", { code: validCode.data });
+      if (!validation.ok || !validation.valid) {
+        toast.error("A valid invite code is required to request music.");
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      toast.error("Could not validate invite code.");
+      setSubmitting(false);
+      return;
+    }
+
     const { error } = await supabase.from("song_requests").insert(parsed.data);
     setSubmitting(false);
     if (error) {
@@ -197,6 +227,9 @@ function MusicSection() {
       title="Keep us dancing"
       subtitle="What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
     >
+      {!inviteCodeSchema.safeParse(inviteCode).success ? (
+        <p className="text-center text-olive/80 mt-6">Add your invite code in the URL to unlock music requests.</p>
+      ) : null}
       <form
         onSubmit={onSubmit}
         className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
@@ -206,7 +239,7 @@ function MusicSection() {
         <Field name="artist" label="Artist" />
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !inviteCodeSchema.safeParse(inviteCode).success}
           className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
         >
           <Music size={16} />
