@@ -9,7 +9,7 @@ import {
 } from "../components/ui/accordion";
 import { MapPin, Clock, Shirt, Music, Heart } from "lucide-react";
 import { Reveal } from "../components/Reveal";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -174,7 +174,39 @@ const songSchema = z.object({
 });
 
 function MusicSection({ inviteCode }: { inviteCode: string }) {
+  const [status, setStatus] = useState<"idle" | "validating" | "ready" | "invalid">(
+    inviteCodeSchema.safeParse(inviteCode).success ? "validating" : "idle",
+  );
+  const [manualCode, setManualCode] = useState(inviteCode);
   const [submitting, setSubmitting] = useState(false);
+
+  async function validateCode(rawCode: string) {
+    const parsed = inviteCodeSchema.safeParse(rawCode);
+    if (!parsed.success) {
+      setStatus("invalid");
+      return;
+    }
+
+    setStatus("validating");
+    try {
+      const validation = await callFunction<ValidateInviteResponse>("validate-invite", {
+        code: parsed.data,
+      });
+      if (validation.ok && validation.valid) {
+        setStatus("ready");
+        return;
+      }
+      setStatus("invalid");
+    } catch {
+      setStatus("invalid");
+      toast.error("Could not validate invite code.");
+    }
+  }
+
+  function onCodeSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void validateCode(manualCode);
+  }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -189,25 +221,12 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
       return;
     }
-    const validCode = inviteCodeSchema.safeParse(inviteCode);
-    if (!validCode.success) {
-      toast.error("A valid invite code is required to request music.");
+    if (status !== "ready") {
+      toast.error("Validate your invite code before requesting music.");
       return;
     }
 
     setSubmitting(true);
-    try {
-      const validation = await callFunction<ValidateInviteResponse>("validate-invite", { code: validCode.data });
-      if (!validation.ok || !validation.valid) {
-        toast.error("A valid invite code is required to request music.");
-        setSubmitting(false);
-        return;
-      }
-    } catch {
-      toast.error("Could not validate invite code.");
-      setSubmitting(false);
-      return;
-    }
 
     const { error } = await supabase.from("song_requests").insert(parsed.data);
     setSubmitting(false);
@@ -219,6 +238,13 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     form.reset();
   }
 
+  useEffect(() => {
+    if (inviteCodeSchema.safeParse(inviteCode).success) {
+      setManualCode(inviteCode);
+      void validateCode(inviteCode);
+    }
+  }, [inviteCode]);
+
   return (
     <PageShell
       id="music"
@@ -227,9 +253,20 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       title="Keep us dancing"
       subtitle="What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
     >
-      {!inviteCodeSchema.safeParse(inviteCode).success ? (
-        <p className="text-center text-olive/80 mt-6">Add your invite code in the URL to unlock music requests.</p>
-      ) : null}
+      <form onSubmit={onCodeSubmit} className="max-w-xl mx-auto mt-6 space-y-3">
+        <input
+          value={manualCode}
+          onChange={(event) => setManualCode(event.target.value)}
+          placeholder="Enter invitation code (w-xxxxxxxx)"
+          className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+        />
+        <button type="submit" className="w-full border border-olive/35 px-4 py-2 text-olive uppercase text-xs tracking-[0.15em]">
+          {status === "validating" ? "Checking code..." : "Unlock music requests"}
+        </button>
+      </form>
+      {status === "invalid" && (
+        <p className="text-center text-coral mt-4">Please enter a valid, active invite code.</p>
+      )}
       <form
         onSubmit={onSubmit}
         className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
@@ -239,7 +276,7 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
         <Field name="artist" label="Artist" />
         <button
           type="submit"
-          disabled={submitting || !inviteCodeSchema.safeParse(inviteCode).success}
+          disabled={submitting || status !== "ready"}
           className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
         >
           <Music size={16} />
