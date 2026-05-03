@@ -253,36 +253,57 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       title="Keep us dancing"
       subtitle="What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
     >
-      <form onSubmit={onCodeSubmit} className="max-w-xl mx-auto mt-6 space-y-3">
-        <input
-          value={manualCode}
-          onChange={(event) => setManualCode(event.target.value)}
-          placeholder="Enter invitation code (w-xxxxxxxx)"
-          className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-        />
-        <button type="submit" className="w-full border border-olive/35 px-4 py-2 text-olive uppercase text-xs tracking-[0.15em]">
-          {status === "validating" ? "Checking code..." : "Unlock music requests"}
-        </button>
-      </form>
-      {status === "invalid" && (
-        <p className="text-center text-coral mt-4">Please enter a valid, active invite code.</p>
-      )}
-      <form
-        onSubmit={onSubmit}
-        className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
-      >
-        <Field name="guest_name" label="Your name" />
-        <Field name="song_title" label="Song title" />
-        <Field name="artist" label="Artist" />
-        <button
-          type="submit"
-          disabled={submitting || status !== "ready"}
-          className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
+      {status !== "ready" ? (
+        <form onSubmit={onCodeSubmit} className="max-w-xl mx-auto mt-6 space-y-6" noValidate>
+          <div className="text-center">
+            <p className="display-serif text-3xl text-olive">We need your invitation code</p>
+            <p className="mt-3 text-foreground/75">
+              Enter the code from your invitation to unlock the music request form.
+            </p>
+          </div>
+          <label className="block">
+            <span className="eyebrow block mb-2">Invitation code</span>
+            <input
+              name="code"
+              value={manualCode}
+              onChange={(event) => setManualCode(event.target.value)}
+              autoComplete="off"
+              aria-invalid={status === "invalid"}
+              aria-describedby={status === "invalid" ? "music-code-error" : undefined}
+              placeholder="w-xxxxxxxx"
+              className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+            />
+          </label>
+          {status === "invalid" && (
+            <p id="music-code-error" className="text-sm text-destructive" role="alert">
+              Please enter a valid, active invite code.
+            </p>
+          )}
+          <button
+            type="submit"
+            className="w-full bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
+          >
+            {status === "validating" ? "Checking code..." : "Unlock music requests"}
+          </button>
+        </form>
+      ) : (
+        <form
+          onSubmit={onSubmit}
+          className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
         >
-          <Music size={16} />
-          {submitting ? "Adding…" : "Add to playlist"}
-        </button>
-      </form>
+          <Field name="guest_name" label="Your name" />
+          <Field name="song_title" label="Song title" />
+          <Field name="artist" label="Artist" />
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
+          >
+            <Music size={16} />
+            {submitting ? "Adding…" : "Add to playlist"}
+          </button>
+        </form>
+      )}
     </PageShell>
   );
 }
