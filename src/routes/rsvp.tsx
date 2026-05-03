@@ -29,6 +29,12 @@ export const Route = createFileRoute("/rsvp")({
   component: RsvpRoute,
 });
 
+
+function RsvpRoute() {
+  const search = Route.useSearch();
+  return <RsvpContent initialCodeFromUrl={search.code ?? ""} />;
+}
+
 const invalidCopy: Record<InvalidReason, { title: string; message: string; action: string }> = {
   missing_code: {
     title: "We need your invitation code",
@@ -81,9 +87,8 @@ function getFieldErrors(error: {
   }, {});
 }
 
-function RsvpRoute() {
-  const search = Route.useSearch();
-  const initialCode = useMemo(() => normalizeCode(search.code ?? ""), [search.code]);
+export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: string }) {
+  const initialCode = useMemo(() => normalizeCode(initialCodeFromUrl ?? ""), [initialCodeFromUrl]);
   const [status, setStatus] = useState<RsvpStatus>(initialCode ? "validating" : "idle");
   const [code, setCode] = useState(initialCode);
   const [manualCode, setManualCode] = useState(initialCode);
