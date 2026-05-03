@@ -91,6 +91,7 @@ function RsvpRoute() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FieldErrors>({});
   const [attending, setAttending] = useState<"yes" | "no" | null>(null);
+  const [additionalGuests, setAdditionalGuests] = useState<string[]>([]);
   const activeValidation = useRef(0);
   const submitInFlight = useRef(false);
 
@@ -216,6 +217,7 @@ function RsvpRoute() {
       setStatus("success");
       toast.success("Your RSVP has been sent.");
       form.reset();
+      setAdditionalGuests([]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
 
@@ -299,6 +301,20 @@ function RsvpRoute() {
               submitting={status === "submitting"}
               onAttendingChange={setAttending}
               onSubmit={onRsvpSubmit}
+              additionalGuests={additionalGuests}
+              onAddGuest={() => setAdditionalGuests((current) => [...current, ""])}
+              onRemoveGuest={(index) =>
+                setAdditionalGuests((current) =>
+                  current.filter((_, guestIndex) => guestIndex !== index),
+                )
+              }
+              onGuestNameChange={(index, value) =>
+                setAdditionalGuests((current) =>
+                  current.map((guestName, guestIndex) =>
+                    guestIndex === index ? value : guestName,
+                  ),
+                )
+              }
             />
           )}
 
@@ -427,13 +443,23 @@ function RsvpForm({
   submitting,
   onAttendingChange,
   onSubmit,
+  additionalGuests,
+  onAddGuest,
+  onRemoveGuest,
+  onGuestNameChange,
 }: {
   attending: "yes" | "no" | null;
   errors: FieldErrors;
   submitting: boolean;
+  additionalGuests: string[];
   onAttendingChange: (value: "yes" | "no") => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onAddGuest: () => void;
+  onRemoveGuest: (index: number) => void;
+  onGuestNameChange: (index: number, value: string) => void;
 }) {
+  const guestCount = 1 + additionalGuests.length;
+
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <Input name="fullName" label="Full name" error={errors.fullName} autoComplete="name" />
@@ -463,16 +489,45 @@ function RsvpForm({
         )}
       </fieldset>
 
-      <Input
-        name="guestCount"
-        type="number"
-        label="Guest count"
-        error={errors.guestCount}
-        defaultValue={1}
-        min={1}
-        max={10}
-        inputMode="numeric"
-      />
+      <input name="guestCount" value={guestCount} readOnly hidden />
+      <fieldset aria-describedby={errors.guestCount ? "guest-count-error" : undefined}>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <legend className="eyebrow">RSVP list</legend>
+          <button
+            type="button"
+            onClick={onAddGuest}
+            disabled={guestCount >= 10}
+            className="text-xs tracking-[0.15em] uppercase border border-olive/35 px-3 py-2 text-olive hover:bg-olive/5 transition disabled:opacity-50"
+          >
+            Add guest
+          </button>
+        </div>
+        <p className="text-sm text-foreground/70">Total guests: {guestCount}</p>
+        <div className="mt-3 space-y-3">
+          {additionalGuests.map((guestName, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                value={guestName}
+                onChange={(event) => onGuestNameChange(index, event.target.value)}
+                className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+                placeholder={`Additional guest ${index + 1} name (optional)`}
+              />
+              <button
+                type="button"
+                onClick={() => onRemoveGuest(index)}
+                className="text-xs tracking-[0.15em] uppercase border border-coral/45 px-3 py-2 text-coral hover:bg-coral/5 transition"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+        {errors.guestCount && (
+          <p id="guest-count-error" className="mt-2 text-sm text-destructive" role="alert">
+            {errors.guestCount}
+          </p>
+        )}
+      </fieldset>
 
       <Textarea
         name="dietaryRequirements"
