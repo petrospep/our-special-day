@@ -1,1 +1,13 @@
-project_id = "sfqpbopgubryeemworcu"
+project_id = "epnishwjsqcmwxqorhkp"
+
+[functions.validate-invite]
+verify_jwt = false
+
+[functions.submit-rsvp]
+verify_jwt = false
+
+[functions.generate-invite]
+verify_jwt = false
+
+[functions.disable-invite]
+verify_jwt = false

@@ -3,12 +3,12 @@ import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 const links = [
-  { hash: "home", label: "Home" },
-  { hash: "events", label: "Events" },
-  { hash: "music", label: "Music" },
-  { hash: "gifts", label: "Gifts" },
-  { hash: "faq", label: "FAQ" },
-  { hash: "rsvp", label: "RSVP" },
+  { to: "/", hash: "home", label: "Home" },
+  { to: "/", hash: "events", label: "Events" },
+  { to: "/", hash: "music", label: "Music" },
+  { to: "/", hash: "gifts", label: "Gifts" },
+  { to: "/", hash: "faq", label: "FAQ" },
+  { to: "/rsvp", label: "RSVP" },
 ] as const;
 
 export function SiteHeader() {
@@ -23,9 +23,9 @@ export function SiteHeader() {
         <nav className="hidden md:flex items-center gap-8">
           {links.map((l) => (
             <Link
-              key={l.hash}
-              to="/"
-              hash={l.hash}
+              key={l.label}
+              to={l.to}
+              hash={"hash" in l ? l.hash : undefined}
               className="text-sm text-foreground/80 hover:text-olive transition-colors"
             >
               {l.label}
@@ -44,9 +44,9 @@ export function SiteHeader() {
         <nav className="md:hidden border-t border-olive/15 bg-cream/95 px-6 py-4 flex flex-col gap-3">
           {links.map((l) => (
             <Link
-              key={l.hash}
-              to="/"
-              hash={l.hash}
+              key={l.label}
+              to={l.to}
+              hash={"hash" in l ? l.hash : undefined}
               onClick={() => setOpen(false)}
               className="text-sm text-foreground/80"
             >
