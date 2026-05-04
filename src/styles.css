@@ -120,6 +120,14 @@
     font-family: var(--font-body);
     font-feature-settings: "ss01", "cv11";
   }
+  @media (max-width: 768px) {
+    body {
+      background-size: auto, auto, 100% auto;
+      background-position: center top, center bottom, center top;
+      background-repeat: no-repeat, no-repeat, repeat-y;
+      background-attachment: scroll, scroll, scroll;
+    }
+  }
   /* Soft cream veil so text stays legible over the leafy watercolor */
   body::before {
     content: "";
