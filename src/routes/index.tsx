@@ -59,7 +59,7 @@ function Hero() {
   return (
     <section id="home" className="relative scroll-mt-20 section-theme theme-hero">
       <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-24">
-        <div className="frame-border relative py-24 md:py-32 px-6 text-center">
+        <div className="frame-border relative py-24 md:py-32 px-6 text-center bg-cream/70 backdrop-blur-sm border border-olive/20">
           <div className="mx-auto mb-10 h-32 w-32 rounded-full border border-olive/30 bg-cream/60 backdrop-blur-sm flex items-center justify-center">
             <span className="display-italic text-olive/70 text-sm">photo</span>
           </div>
