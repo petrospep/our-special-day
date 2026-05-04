@@ -1,5 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
-import { Watercolor } from "../components/Watercolor";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "../components/PageShell";
 import {
   Accordion,
@@ -14,9 +13,10 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { callFunction } from "@/lib/functions";
-import { RsvpContent } from "./rsvp";
+import { RsvpContent } from "@/components/RsvpContent";
 import type { ValidateInviteResponse } from "@/lib/rsvp-types";
 import { inviteCodeSchema } from "@/lib/rsvp-validation";
+import couplePhoto from "@/assets/couplephoto.jpg";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -31,19 +31,6 @@ function Index() {
 
   return (
     <div className="relative overflow-hidden">
-      {/* Floating watercolor blobs sprinkled down the page */}
-      <Watercolor blob="coral" className="-top-24 -left-20 w-[34rem] opacity-80 -rotate-12" />
-      <Watercolor blob="yellow" className="top-10 right-[-6rem] w-[36rem] opacity-85" />
-      <Watercolor blob="green" className="top-[28rem] right-[-4rem] w-[24rem] opacity-60" />
-      <Watercolor blob="yellow" className="top-[60rem] -left-24 w-[28rem] opacity-70" />
-      <Watercolor
-        blob="coral"
-        className="top-[95rem] right-[-5rem] w-[26rem] opacity-60 -rotate-6"
-      />
-      <Watercolor blob="green" className="top-[130rem] -left-16 w-[24rem] opacity-55" />
-      <Watercolor blob="yellow" className="top-[170rem] right-[-6rem] w-[28rem] opacity-65" />
-      <Watercolor blob="coral" className="top-[210rem] -left-20 w-[22rem] opacity-50" />
-
       <Hero />
       <EventsSection />
       <MusicSection inviteCode={inviteCode} />
@@ -57,43 +44,15 @@ function Index() {
 /* ---------------- Hero ---------------- */
 function Hero() {
   return (
-    <section id="home" className="relative scroll-mt-20 section-theme theme-hero">
-      <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-24">
-        <div className="frame-border relative py-24 md:py-32 px-6 text-center bg-cream/70 backdrop-blur-sm border border-olive/20">
-          <div className="mx-auto mb-10 h-32 w-32 rounded-full border border-olive/30 bg-cream/60 backdrop-blur-sm flex items-center justify-center">
-            <span className="display-italic text-olive/70 text-sm">photo</span>
-          </div>
-          <h1 className="display-serif text-7xl md:text-9xl tracking-tight text-olive leading-[0.9]">
-            SAVE
-            <span className="block display-italic text-5xl md:text-7xl my-2 text-olive/90">
-              the
-            </span>
-            DATE
-          </h1>
-          <div className="mt-12 space-y-4">
-            <p className="display-serif text-3xl md:text-4xl text-olive">Petros &amp; Nikki</p>
-            <p className="text-base md:text-lg tracking-wide text-foreground/80">
-              Saturday, 25<sup>th</sup> July 2026
-            </p>
-            <div className="mx-auto h-px w-10 bg-olive/40" />
-            <p className="text-base text-foreground/80">Athens, Greece</p>
-          </div>
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/" hash="rsvp"
-              className="inline-flex items-center justify-center rounded-sm bg-olive px-8 py-3 text-sm tracking-[0.2em] uppercase text-cream hover:bg-olive/90 transition"
-            >
-              RSVP
-            </Link>
-            <a
-              href="#events"
-              className="inline-flex items-center justify-center rounded-sm border border-olive/40 px-8 py-3 text-sm tracking-[0.2em] uppercase text-olive hover:bg-olive/5 transition"
-            >
-              The Day
-            </a>
-          </div>
-        </div>
-      </div>
+    <section
+      id="home"
+      className="relative isolate min-h-[92svh] scroll-mt-20 overflow-hidden bg-transparent"
+    >
+      <img
+        src={couplePhoto}
+        alt="Petros and Nikki"
+        className="absolute inset-0 h-full w-full object-contain object-center"
+      />
     </section>
   );
 }
@@ -254,38 +213,40 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       subtitle="What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
     >
       {status !== "ready" ? (
-        <form onSubmit={onCodeSubmit} className="max-w-xl mx-auto mt-6 space-y-6" noValidate>
-          <div className="text-center">
-            <p className="display-serif text-3xl text-olive">We need your invitation code</p>
-            <p className="mt-3 text-foreground/75">
-              Enter the code from your invitation to unlock the music request form.
-            </p>
-          </div>
-          <label className="block">
-            <span className="eyebrow block mb-2">Invitation code</span>
-            <input
-              name="code"
-              value={manualCode}
-              onChange={(event) => setManualCode(event.target.value)}
-              autoComplete="off"
-              aria-invalid={status === "invalid"}
-              aria-describedby={status === "invalid" ? "music-code-error" : undefined}
-              placeholder="w-xxxxxxxx"
-              className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-            />
-          </label>
-          {status === "invalid" && (
-            <p id="music-code-error" className="text-sm text-destructive" role="alert">
-              Please enter a valid, active invite code.
-            </p>
-          )}
-          <button
-            type="submit"
-            className="w-full bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
-          >
-            {status === "validating" ? "Checking code..." : "Unlock music requests"}
-          </button>
-        </form>
+        <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12 max-w-2xl mx-auto mt-6">
+          <form onSubmit={onCodeSubmit} className="space-y-6" noValidate>
+            <div className="text-center">
+              <p className="display-serif text-3xl text-olive">We need your invitation code</p>
+              <p className="mt-3 text-foreground/75">
+                Enter the code from your invitation to unlock the music request form.
+              </p>
+            </div>
+            <label className="block">
+              <span className="eyebrow block mb-2">Invitation code</span>
+              <input
+                name="code"
+                value={manualCode}
+                onChange={(event) => setManualCode(event.target.value)}
+                autoComplete="off"
+                aria-invalid={status === "invalid"}
+                aria-describedby={status === "invalid" ? "music-code-error" : undefined}
+                placeholder="w-xxxxxxxx"
+                className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+              />
+            </label>
+            {status === "invalid" && (
+              <p id="music-code-error" className="text-sm text-destructive" role="alert">
+                Please enter a valid, active invite code.
+              </p>
+            )}
+            <button
+              type="submit"
+              className="w-full bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
+            >
+              {status === "validating" ? "Checking code..." : "Unlock music requests"}
+            </button>
+          </form>
+        </div>
       ) : (
         <form
           onSubmit={onSubmit}

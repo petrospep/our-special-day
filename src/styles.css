@@ -129,20 +129,6 @@
     z-index: 0;
     background: color-mix(in oklab, var(--cream) 58%, transparent);
   }
-  /* Scrolling leafy layer — moves with the page for gentle parallax depth */
-  body::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image: url("/src/assets/watercolor-bg.jpg");
-    background-size: 120% auto;
-    background-position: center top;
-    background-repeat: repeat-y;
-    opacity: 0.18;
-    mix-blend-mode: multiply;
-  }
   #root, main {
     position: relative;
     z-index: 1;

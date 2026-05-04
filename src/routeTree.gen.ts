@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RsvpRouteImport } from './routes/rsvp'
+import { Route as InvitationRouteImport } from './routes/invitation'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
 const RsvpRoute = RsvpRouteImport.update({
   id: '/rsvp',
   path: '/rsvp',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvitationRoute = InvitationRouteImport.update({
+  id: '/invitation',
+  path: '/invitation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/invitation': typeof InvitationRoute
   '/rsvp': typeof RsvpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/invitation': typeof InvitationRoute
   '/rsvp': typeof RsvpRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/invitation': typeof InvitationRoute
   '/rsvp': typeof RsvpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/rsvp'
+  fullPaths: '/' | '/admin' | '/invitation' | '/rsvp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/rsvp'
-  id: '__root__' | '/' | '/admin' | '/rsvp'
+  to: '/' | '/admin' | '/invitation' | '/rsvp'
+  id: '__root__' | '/' | '/admin' | '/invitation' | '/rsvp'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  InvitationRoute: typeof InvitationRoute
   RsvpRoute: typeof RsvpRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/rsvp'
       fullPath: '/rsvp'
       preLoaderRoute: typeof RsvpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invitation': {
+      id: '/invitation'
+      path: '/invitation'
+      fullPath: '/invitation'
+      preLoaderRoute: typeof InvitationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  InvitationRoute: InvitationRoute,
   RsvpRoute: RsvpRoute,
 }
 export const routeTree = rootRouteImport

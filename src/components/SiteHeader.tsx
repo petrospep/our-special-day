@@ -8,7 +8,7 @@ const links = [
   { to: "/", hash: "music", label: "Music" },
   { to: "/", hash: "gifts", label: "Gifts" },
   { to: "/", hash: "faq", label: "FAQ" },
-  { to: "/rsvp", label: "RSVP" },
+  { to: "/", hash: "rsvp", label: "RSVP" },
 ] as const;
 
 export function SiteHeader() {

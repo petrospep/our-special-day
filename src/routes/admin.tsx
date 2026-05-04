@@ -79,11 +79,12 @@ function formatDate(value: string | null) {
 
 function makeRsvpUrl(code: string) {
   if (typeof window === "undefined") {
-    return `/rsvp?code=${encodeURIComponent(code)}`;
+    return `/?code=${encodeURIComponent(code)}#rsvp`;
   }
 
-  const url = new URL("/rsvp", window.location.origin);
+  const url = new URL("/", window.location.origin);
   url.searchParams.set("code", code);
+  url.hash = "rsvp";
 
   return url.toString();
 }
