@@ -122,10 +122,24 @@
   }
   @media (max-width: 768px) {
     body {
-      background-size: auto, auto, 100% auto;
-      background-position: center top, center bottom, center top;
-      background-repeat: no-repeat, no-repeat, repeat-y;
-      background-attachment: scroll, scroll, scroll;
+      background-image:
+        radial-gradient(60% 50% at 50% 30%, color-mix(in oklab, var(--sage) 14%, transparent), transparent 70%),
+        radial-gradient(70% 60% at 50% 90%, color-mix(in oklab, var(--olive) 12%, transparent), transparent 75%);
+      background-size: auto, auto;
+      background-position: center top, center bottom;
+      background-repeat: no-repeat, no-repeat;
+      background-attachment: scroll, scroll;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: url("/src/assets/watercolor-bg.jpg");
+      background-size: auto 100svh;
+      background-position: center center;
+      background-repeat: no-repeat;
     }
   }
   /* Soft cream veil so text stays legible over the leafy watercolor */
@@ -134,12 +148,12 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
     background: color-mix(in oklab, var(--cream) 58%, transparent);
   }
   #root, main {
     position: relative;
-    z-index: 1;
+    z-index: 2;
   }
 
   h1, h2, h3, h4 {
