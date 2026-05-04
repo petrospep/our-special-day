@@ -108,9 +108,9 @@
   body {
     background-color: var(--color-background);
     background-image: url("/src/assets/watercolor-bg.jpg");
-    background-size: 140% auto;
-    background-position: center top;
-    background-repeat: repeat-y;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
     background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-body);
@@ -122,7 +122,8 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    background: color-mix(in oklab, var(--cream) 55%, transparent);
+    /* Soft cream veil so text stays legible over the pear watercolor */
+    background: color-mix(in oklab, var(--cream) 62%, transparent);
   }
   #root, main {
     position: relative;
@@ -241,51 +242,50 @@
     z-index: 1;
   }
 
-  /* Hero — warm cream with coral & lemon haze (matches the invitation) */
+  /* All sections share the pear watercolor palette: muted sage, soft pear-yellow,
+   * and warm cream. Each section gets a slightly different wash so they feel
+   * distinct while staying within the same painting. */
+
+  /* Hero — soft pear-yellow glow */
   .theme-hero::before {
     background:
-      radial-gradient(60% 50% at 15% 20%, color-mix(in oklab, var(--coral) 28%, transparent), transparent 70%),
-      radial-gradient(55% 45% at 85% 10%, color-mix(in oklab, var(--lemon) 35%, transparent), transparent 70%),
-      radial-gradient(70% 60% at 80% 90%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+      radial-gradient(60% 55% at 20% 25%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%),
+      radial-gradient(55% 50% at 85% 15%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 70%);
   }
 
-  /* Events — sage / olive grove */
+  /* Events — sage leaf wash */
   .theme-events::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 75%),
-      radial-gradient(50% 40% at 90% 15%, color-mix(in oklab, var(--sage) 38%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 10% 80%, color-mix(in oklab, var(--lemon) 24%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 14%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 88% 20%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
   }
 
-  /* Music — sun-soaked lemon */
+  /* Music — warm pear glow */
   .theme-music::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--lemon) 26%, transparent), transparent 75%),
-      radial-gradient(55% 45% at 15% 20%, color-mix(in oklab, var(--lemon) 42%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 90% 85%, color-mix(in oklab, var(--coral) 26%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--lemon) 14%, transparent), transparent 75%),
+      radial-gradient(50% 45% at 15% 25%, color-mix(in oklab, var(--lemon) 22%, transparent), transparent 70%);
   }
 
-  /* Gifts — coral blush */
+  /* Gifts — soft cream with pear blush */
   .theme-gifts::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--coral) 22%, transparent), transparent 75%),
-      radial-gradient(55% 45% at 85% 20%, color-mix(in oklab, var(--coral) 36%, transparent), transparent 70%),
-      radial-gradient(50% 45% at 10% 80%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--cream) 25%, transparent), transparent 75%),
+      radial-gradient(50% 45% at 80% 20%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%);
   }
 
-  /* FAQ — soft sage & cream, calm reading tone */
+  /* FAQ — quiet sage */
   .theme-faq::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 75%),
-      radial-gradient(45% 40% at 12% 15%, color-mix(in oklab, var(--sage) 30%, transparent), transparent 70%),
-      radial-gradient(45% 40% at 88% 85%, color-mix(in oklab, var(--lemon) 20%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 12%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 12% 80%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 70%);
   }
 
-  /* RSVP — deep olive on cream, the "closing" tone */
+  /* RSVP — deeper pear & sage close */
   .theme-rsvp::before {
     background:
-      radial-gradient(100% 100% at 50% 50%, color-mix(in oklab, var(--olive) 14%, transparent), transparent 75%),
-      radial-gradient(60% 50% at 50% 0%, color-mix(in oklab, var(--coral) 22%, transparent), transparent 70%),
-      radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--sage) 26%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--olive) 8%, transparent), transparent 75%),
+      radial-gradient(55% 45% at 50% 0%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%),
+      radial-gradient(55% 45% at 50% 100%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 70%);
   }
 }
