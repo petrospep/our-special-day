@@ -58,39 +58,41 @@ function Index() {
 function Hero() {
   return (
     <section id="home" className="relative scroll-mt-20 section-theme theme-hero">
-      <div className="relative mx-auto max-w-4xl px-6 pt-20 pb-24">
-        <div className="frame-border relative py-24 md:py-32 px-6 text-center">
-          <div className="mx-auto mb-10 h-32 w-32 rounded-full border border-olive/30 bg-cream/60 backdrop-blur-sm flex items-center justify-center">
-            <span className="display-italic text-olive/70 text-sm">photo</span>
-          </div>
-          <h1 className="display-serif text-7xl md:text-9xl tracking-tight text-olive leading-[0.9]">
-            SAVE
-            <span className="block display-italic text-5xl md:text-7xl my-2 text-olive/90">
-              the
-            </span>
-            DATE
-          </h1>
-          <div className="mt-12 space-y-4">
-            <p className="display-serif text-3xl md:text-4xl text-olive">Petros &amp; Nikki</p>
-            <p className="text-base md:text-lg tracking-wide text-foreground/80">
-              Saturday, 25<sup>th</sup> July 2026
-            </p>
-            <div className="mx-auto h-px w-10 bg-olive/40" />
-            <p className="text-base text-foreground/80">Athens, Greece</p>
-          </div>
-          <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/" hash="rsvp"
-              className="inline-flex items-center justify-center rounded-sm bg-olive px-8 py-3 text-sm tracking-[0.2em] uppercase text-cream hover:bg-olive/90 transition"
-            >
-              RSVP
-            </Link>
-            <a
-              href="#events"
-              className="inline-flex items-center justify-center rounded-sm border border-olive/40 px-8 py-3 text-sm tracking-[0.2em] uppercase text-olive hover:bg-olive/5 transition"
-            >
-              The Day
-            </a>
+      <div className="relative mx-auto max-w-4xl px-6 py-16">
+        <div className="bg-cream/85 backdrop-blur-md border border-olive/20 shadow-xl rounded-sm">
+          <div className="frame-border relative py-24 md:py-32 px-6 text-center">
+            <div className="mx-auto mb-10 h-32 w-32 rounded-full border border-olive/30 bg-cream/60 backdrop-blur-sm flex items-center justify-center">
+              <span className="display-italic text-olive/70 text-sm">photo</span>
+            </div>
+            <h1 className="display-serif text-7xl md:text-9xl tracking-tight text-olive leading-[0.9]">
+              SAVE
+              <span className="block display-italic text-5xl md:text-7xl my-2 text-olive/90">
+                the
+              </span>
+              DATE
+            </h1>
+            <div className="mt-12 space-y-4">
+              <p className="display-serif text-3xl md:text-4xl text-olive">Petros &amp; Nikki</p>
+              <p className="text-base md:text-lg tracking-wide text-foreground/80">
+                Saturday, 25<sup>th</sup> July 2026
+              </p>
+              <div className="mx-auto h-px w-10 bg-olive/40" />
+              <p className="text-base text-foreground/80">Athens, Greece</p>
+            </div>
+            <div className="mt-12 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/" hash="rsvp"
+                className="inline-flex items-center justify-center rounded-sm bg-olive px-8 py-3 text-sm tracking-[0.2em] uppercase text-cream hover:bg-olive/90 transition"
+              >
+                RSVP
+              </Link>
+              <a
+                href="#events"
+                className="inline-flex items-center justify-center rounded-sm border border-olive/40 px-8 py-3 text-sm tracking-[0.2em] uppercase text-olive hover:bg-olive/5 transition"
+              >
+                The Day
+              </a>
+            </div>
           </div>
         </div>
       </div>
