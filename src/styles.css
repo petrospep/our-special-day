@@ -242,50 +242,56 @@
     z-index: 1;
   }
 
-  /* All sections share the pear watercolor palette: muted sage, soft pear-yellow,
-   * and warm cream. Each section gets a slightly different wash so they feel
-   * distinct while staying within the same painting. */
+  /* Leafy palette inspired by the tropical watercolor frame:
+   * pale chartreuse, fresh sage, deep fern, dusty olive, soft cream.
+   * Each section keeps the same family but shifts hue & placement so
+   * scrolling feels like moving through layered foliage. */
 
-  /* Hero — soft pear-yellow glow */
+  /* Hero — bright sun-through-leaves */
   .theme-hero::before {
     background:
-      radial-gradient(60% 55% at 20% 25%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%),
-      radial-gradient(55% 50% at 85% 15%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 70%);
+      radial-gradient(60% 55% at 18% 22%, color-mix(in oklab, var(--lemon) 22%, transparent), transparent 70%),
+      radial-gradient(55% 50% at 82% 18%, color-mix(in oklab, var(--sage) 24%, transparent), transparent 70%),
+      radial-gradient(70% 60% at 50% 95%, color-mix(in oklab, var(--olive) 14%, transparent), transparent 70%);
   }
 
-  /* Events — sage leaf wash */
+  /* Events — fern grove */
   .theme-events::before {
     background:
-      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 14%, transparent), transparent 75%),
-      radial-gradient(45% 40% at 88% 20%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 8% 18%, color-mix(in oklab, var(--olive) 22%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 92% 82%, color-mix(in oklab, var(--olive) 22%, transparent), transparent 70%);
   }
 
-  /* Music — warm pear glow */
+  /* Music — chartreuse light */
   .theme-music::before {
     background:
-      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--lemon) 14%, transparent), transparent 75%),
-      radial-gradient(50% 45% at 15% 25%, color-mix(in oklab, var(--lemon) 22%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 75%),
+      radial-gradient(50% 45% at 88% 22%, color-mix(in oklab, var(--sage) 26%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 12% 78%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
   }
 
-  /* Gifts — soft cream with pear blush */
+  /* Gifts — soft new-leaf green */
   .theme-gifts::before {
     background:
-      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--cream) 25%, transparent), transparent 75%),
-      radial-gradient(50% 45% at 80% 20%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 75%),
+      radial-gradient(50% 45% at 18% 22%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 85% 85%, color-mix(in oklab, var(--olive) 16%, transparent), transparent 70%);
   }
 
-  /* FAQ — quiet sage */
+  /* FAQ — quiet shade */
   .theme-faq::before {
     background:
-      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 12%, transparent), transparent 75%),
-      radial-gradient(45% 40% at 12% 80%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 12% 80%, color-mix(in oklab, var(--olive) 18%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 88% 18%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
   }
 
-  /* RSVP — deeper pear & sage close */
+  /* RSVP — deep fern close */
   .theme-rsvp::before {
     background:
-      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--olive) 8%, transparent), transparent 75%),
-      radial-gradient(55% 45% at 50% 0%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%),
-      radial-gradient(55% 45% at 50% 100%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 70%);
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--olive) 18%, transparent), transparent 75%),
+      radial-gradient(60% 50% at 50% 0%, color-mix(in oklab, var(--sage) 24%, transparent), transparent 70%),
+      radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--sage) 24%, transparent), transparent 70%);
   }
 }
