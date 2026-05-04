@@ -108,10 +108,9 @@
   body {
     background-color: var(--color-background);
     background-image: url("/src/assets/watercolor-bg.jpg");
-    background-size: cover;
-    background-position: center center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-size: 100% auto;
+    background-position: center top;
+    background-repeat: repeat-y;
     color: var(--color-foreground);
     font-family: var(--font-body);
     font-feature-settings: "ss01", "cv11";
@@ -122,8 +121,8 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    /* Soft cream veil so text stays legible over the pear watercolor */
-    background: color-mix(in oklab, var(--cream) 62%, transparent);
+    /* Soft cream veil so text stays legible over the watercolor */
+    background: color-mix(in oklab, var(--cream) 75%, transparent);
   }
   #root, main {
     position: relative;
