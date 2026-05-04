@@ -108,9 +108,10 @@
   body {
     background-color: var(--color-background);
     background-image: url("/src/assets/watercolor-bg.jpg");
-    background-size: 100% auto;
-    background-position: center top;
-    background-repeat: repeat-y;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-body);
     font-feature-settings: "ss01", "cv11";
@@ -121,8 +122,8 @@
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    /* Soft cream veil so text stays legible over the watercolor */
-    background: color-mix(in oklab, var(--cream) 75%, transparent);
+    /* Soft cream veil so text stays legible over the pear watercolor */
+    background: color-mix(in oklab, var(--cream) 62%, transparent);
   }
   #root, main {
     position: relative;
@@ -197,10 +198,100 @@
     background-position: center;
   }
 
-  /* Section themes — washes removed; sections are transparent and content
-   * sits inside cream cards over the scrolling watercolor background. */
+  /* ---------- Section palettes ---------- *
+   * Each palette tints the section background with a soft watercolor wash
+   * drawn from the wedding palette, while keeping olive ink + cream cards
+   * for legibility. Transitions are slow so the page feels like one
+   * continuous watercolor as you scroll.
+   */
+  /* Section palette wash.
+   * Each section keeps a transparent background and paints its color via
+   * ::before, which is faded to 0 at the top & bottom edges. Because adjacent
+   * sections both fade to nothing where they meet, the cream page background
+   * shows through and you get a smooth crossfade instead of a hard seam.
+   */
   .section-theme {
     position: relative;
     background-color: transparent;
+  }
+  .section-theme::before {
+    content: "";
+    position: absolute;
+    inset: -8% 0;            /* extend past edges so the wash overlaps neighbours */
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.9;
+    /* Vertical alpha mask: invisible at top/bottom, full strength in the middle */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 22%,
+      black 78%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      black 22%,
+      black 78%,
+      transparent 100%
+    );
+  }
+  .section-theme > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Leafy palette inspired by the tropical watercolor frame:
+   * pale chartreuse, fresh sage, deep fern, dusty olive, soft cream.
+   * Each section keeps the same family but shifts hue & placement so
+   * scrolling feels like moving through layered foliage. */
+
+  /* Hero — bright sun-through-leaves */
+  .theme-hero::before {
+    background:
+      radial-gradient(60% 55% at 18% 22%, color-mix(in oklab, var(--lemon) 22%, transparent), transparent 70%),
+      radial-gradient(55% 50% at 82% 18%, color-mix(in oklab, var(--sage) 24%, transparent), transparent 70%),
+      radial-gradient(70% 60% at 50% 95%, color-mix(in oklab, var(--olive) 14%, transparent), transparent 70%);
+  }
+
+  /* Events — fern grove */
+  .theme-events::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 8% 18%, color-mix(in oklab, var(--olive) 22%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 92% 82%, color-mix(in oklab, var(--olive) 22%, transparent), transparent 70%);
+  }
+
+  /* Music — chartreuse light */
+  .theme-music::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 75%),
+      radial-gradient(50% 45% at 88% 22%, color-mix(in oklab, var(--sage) 26%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 12% 78%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+  }
+
+  /* Gifts — soft new-leaf green */
+  .theme-gifts::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 18%, transparent), transparent 75%),
+      radial-gradient(50% 45% at 18% 22%, color-mix(in oklab, var(--lemon) 18%, transparent), transparent 70%),
+      radial-gradient(50% 45% at 85% 85%, color-mix(in oklab, var(--olive) 16%, transparent), transparent 70%);
+  }
+
+  /* FAQ — quiet shade */
+  .theme-faq::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 16%, transparent), transparent 75%),
+      radial-gradient(45% 40% at 12% 80%, color-mix(in oklab, var(--olive) 18%, transparent), transparent 70%),
+      radial-gradient(45% 40% at 88% 18%, color-mix(in oklab, var(--sage) 22%, transparent), transparent 70%);
+  }
+
+  /* RSVP — deep fern close */
+  .theme-rsvp::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--olive) 18%, transparent), transparent 75%),
+      radial-gradient(60% 50% at 50% 0%, color-mix(in oklab, var(--sage) 24%, transparent), transparent 70%),
+      radial-gradient(60% 50% at 50% 100%, color-mix(in oklab, var(--sage) 24%, transparent), transparent 70%);
   }
 }
