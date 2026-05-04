@@ -107,9 +107,26 @@
 
   body {
     background-color: var(--color-background);
+    background-image: url("/src/assets/watercolor-bg.jpg");
+    background-size: 140% auto;
+    background-position: center top;
+    background-repeat: repeat-y;
+    background-attachment: fixed;
     color: var(--color-foreground);
     font-family: var(--font-body);
     font-feature-settings: "ss01", "cv11";
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: color-mix(in oklab, var(--cream) 55%, transparent);
+  }
+  #root, main {
+    position: relative;
+    z-index: 1;
   }
 
   h1, h2, h3, h4 {
