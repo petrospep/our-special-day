@@ -108,9 +108,53 @@
 
   body {
     background-color: var(--color-background);
+    /* Constant fixed wash — soft cream so the watercolor frame stays calm */
+    background-image:
+      radial-gradient(60% 50% at 50% 30%, color-mix(in oklab, var(--sage) 14%, transparent), transparent 70%),
+      radial-gradient(70% 60% at 50% 90%, color-mix(in oklab, var(--olive) 12%, transparent), transparent 75%),
+      url("/src/assets/watercolor-bg.jpg");
+    background-size: auto, auto, cover;
+    background-position: center top, center bottom, center center;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed, fixed, fixed;
     color: var(--color-foreground);
     font-family: var(--font-body);
     font-feature-settings: "ss01", "cv11";
+  }
+  @media (max-width: 768px) {
+    body {
+      background-image:
+        radial-gradient(60% 50% at 50% 30%, color-mix(in oklab, var(--sage) 14%, transparent), transparent 70%),
+        radial-gradient(70% 60% at 50% 90%, color-mix(in oklab, var(--olive) 12%, transparent), transparent 75%);
+      background-size: auto, auto;
+      background-position: center top, center bottom;
+      background-repeat: no-repeat, no-repeat;
+      background-attachment: scroll, scroll;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: url("/src/assets/watercolor-bg.jpg");
+      background-size: auto 100svh;
+      background-position: center center;
+      background-repeat: no-repeat;
+    }
+  }
+  /* Soft cream veil so text stays legible over the leafy watercolor */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: color-mix(in oklab, var(--cream) 58%, transparent);
+  }
+  #root, main {
+    position: relative;
+    z-index: 2;
   }
 
   h1, h2, h3, h4 {
@@ -226,58 +270,41 @@
     z-index: 1;
   }
 
-  /* Hero — bold coral, lemon and leaf-green washes on white paper */
-  .theme-hero::before {
-    background:
-      radial-gradient(48% 42% at 12% 18%, color-mix(in oklab, var(--coral) 78%, transparent), transparent 72%),
-      radial-gradient(52% 46% at 86% 12%, color-mix(in oklab, var(--lemon) 82%, transparent), transparent 72%),
-      radial-gradient(34% 30% at 78% 22%, color-mix(in oklab, var(--sage) 78%, transparent), transparent 70%),
-      radial-gradient(46% 40% at 18% 82%, color-mix(in oklab, var(--lemon) 70%, transparent), transparent 72%),
-      radial-gradient(40% 36% at 82% 88%, color-mix(in oklab, var(--coral) 60%, transparent), transparent 72%);
-  }
-
-  /* Events — vivid sage / lemon grove */
-  .theme-events::before {
-    background:
-      radial-gradient(50% 44% at 88% 18%, color-mix(in oklab, var(--sage) 80%, transparent), transparent 72%),
-      radial-gradient(46% 40% at 14% 30%, color-mix(in oklab, var(--lemon) 72%, transparent), transparent 72%),
-      radial-gradient(44% 38% at 78% 82%, color-mix(in oklab, var(--lemon) 68%, transparent), transparent 72%),
-      radial-gradient(38% 34% at 22% 86%, color-mix(in oklab, var(--sage) 70%, transparent), transparent 72%);
-  }
-
-  /* Music — sun-soaked lemon with coral pop */
-  .theme-music::before {
-    background:
-      radial-gradient(54% 46% at 18% 22%, color-mix(in oklab, var(--lemon) 88%, transparent), transparent 72%),
-      radial-gradient(46% 40% at 84% 18%, color-mix(in oklab, var(--coral) 72%, transparent), transparent 72%),
-      radial-gradient(40% 36% at 78% 82%, color-mix(in oklab, var(--lemon) 78%, transparent), transparent 72%),
-      radial-gradient(36% 32% at 22% 86%, color-mix(in oklab, var(--sage) 60%, transparent), transparent 72%);
-  }
-
-  /* Gifts — coral blush with leaf accents */
-  .theme-gifts::before {
-    background:
-      radial-gradient(50% 44% at 86% 22%, color-mix(in oklab, var(--coral) 82%, transparent), transparent 72%),
-      radial-gradient(46% 40% at 14% 28%, color-mix(in oklab, var(--lemon) 68%, transparent), transparent 72%),
-      radial-gradient(40% 36% at 20% 84%, color-mix(in oklab, var(--coral) 70%, transparent), transparent 72%),
-      radial-gradient(34% 30% at 80% 86%, color-mix(in oklab, var(--sage) 64%, transparent), transparent 72%);
-  }
-
-  /* FAQ — sage forward, lemon counterpoint */
-  .theme-faq::before {
-    background:
-      radial-gradient(50% 44% at 14% 18%, color-mix(in oklab, var(--sage) 76%, transparent), transparent 72%),
-      radial-gradient(46% 40% at 86% 24%, color-mix(in oklab, var(--lemon) 70%, transparent), transparent 72%),
-      radial-gradient(42% 38% at 84% 84%, color-mix(in oklab, var(--sage) 70%, transparent), transparent 72%),
-      radial-gradient(38% 34% at 18% 86%, color-mix(in oklab, var(--coral) 56%, transparent), transparent 72%);
-  }
-
-  /* RSVP — closing chord: all four colours, balanced */
+  /* Leafy palette — all sections share the same cohesive sage/olive family.
+   * Each section gets only a whisper of its own tint so transitions between
+   * sections are imperceptible — the page reads as one continuous garden. */
+  .theme-hero::before,
+  .theme-events::before,
+  .theme-music::before,
+  .theme-gifts::before,
+  .theme-faq::before,
   .theme-rsvp::before {
     background:
-      radial-gradient(46% 40% at 16% 18%, color-mix(in oklab, var(--coral) 76%, transparent), transparent 72%),
-      radial-gradient(46% 40% at 84% 18%, color-mix(in oklab, var(--lemon) 80%, transparent), transparent 72%),
-      radial-gradient(44% 38% at 18% 84%, color-mix(in oklab, var(--sage) 74%, transparent), transparent 72%),
-      radial-gradient(44% 38% at 84% 84%, color-mix(in oklab, var(--coral) 64%, transparent), transparent 72%);
+      radial-gradient(75% 55% at 50% 50%, color-mix(in oklab, var(--sage) 10%, transparent), transparent 78%);
+  }
+  .theme-hero::before {
+    background:
+      radial-gradient(60% 50% at 30% 25%, color-mix(in oklab, var(--lemon) 10%, transparent), transparent 72%),
+      radial-gradient(60% 55% at 75% 80%, color-mix(in oklab, var(--sage) 14%, transparent), transparent 75%);
+  }
+  .theme-events::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 12%, transparent), transparent 78%);
+  }
+  .theme-music::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--olive) 8%, transparent), transparent 78%);
+  }
+  .theme-gifts::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 10%, transparent), transparent 78%);
+  }
+  .theme-faq::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--sage) 12%, transparent), transparent 78%);
+  }
+  .theme-rsvp::before {
+    background:
+      radial-gradient(70% 60% at 50% 50%, color-mix(in oklab, var(--olive) 12%, transparent), transparent 78%);
   }
 }
