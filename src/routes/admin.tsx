@@ -75,17 +75,28 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function getBasePath() {
+  const basePath = import.meta.env.BASE_URL || "/";
+
+  return basePath.endsWith("/") ? basePath : `${basePath}/`;
+}
+
 function makeInvitationUrl(code: string) {
+  const invitationPath = `${getBasePath()}invitation`;
+
   if (typeof window === "undefined") {
-    return `/invitation?code=${encodeURIComponent(code)}`;
+    return `${invitationPath}?code=${encodeURIComponent(code)}`;
   }
 
-  const url = new URL("/invitation", window.location.origin);
+  const url = new URL(invitationPath, window.location.origin);
   url.searchParams.set("code", code);
 
   return url.toString();
 }
 
+async function copyInvitationUrl(code: string) {
+  await navigator.clipboard.writeText(makeInvitationUrl(code));
+}
 
 function StatusBadge({ status }: { status: InviteStatus }) {
   if (status === "disabled") {
@@ -289,13 +300,22 @@ function AdminRoute() {
 
     try {
       const token = await getAccessToken();
-      await callFunction<GenerateInviteResponse>(
+      const response = await callFunction<GenerateInviteResponse>(
         "generate-invite",
         { notes: notes.trim() || null },
         token,
       );
       setNotes("");
-      toast.success("Invitation code generated.");
+      if (response.ok) {
+        try {
+          await copyInvitationUrl(response.code);
+          toast.success("Invitation code generated and URL copied.");
+        } catch (error) {
+          console.error(error);
+          toast.success("Invitation code generated.");
+          toast.error("Could not copy link.");
+        }
+      }
       await loadAdminData(session);
     } catch (error) {
       console.error(error);
@@ -323,7 +343,7 @@ function AdminRoute() {
 
   async function copyLink(code: string) {
     try {
-      await navigator.clipboard.writeText(makeInvitationUrl(code));
+      await copyInvitationUrl(code);
       toast.success("Invitation URL copied.");
     } catch (error) {
       console.error(error);
