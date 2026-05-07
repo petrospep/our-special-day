@@ -4,7 +4,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Copy,
-  Download,
   Loader2,
   LogOut,
   Mail,
@@ -14,7 +13,6 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import * as QRCode from "qrcode";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -77,27 +75,17 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function makeRsvpUrl(code: string) {
+function makeInvitationUrl(code: string) {
   if (typeof window === "undefined") {
-    return `/?code=${encodeURIComponent(code)}#rsvp`;
+    return `/invitation?code=${encodeURIComponent(code)}`;
   }
 
-  const url = new URL("/", window.location.origin);
+  const url = new URL("/invitation", window.location.origin);
   url.searchParams.set("code", code);
-  url.hash = "rsvp";
 
   return url.toString();
 }
 
-async function downloadText(filename: string, content: string, type: string) {
-  const blob = new Blob([content], { type });
-  const href = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = href;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(href);
-}
 
 function StatusBadge({ status }: { status: InviteStatus }) {
   if (status === "disabled") {
@@ -126,94 +114,6 @@ function StatusBadge({ status }: { status: InviteStatus }) {
   );
 }
 
-function QrPanel({ code, url }: { code: string; url: string }) {
-  const [pngUrl, setPngUrl] = useState<string | null>(null);
-  const [qrError, setQrError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    QRCode.toDataURL(url, {
-      errorCorrectionLevel: "M",
-      margin: 2,
-      scale: 6,
-      color: {
-        dark: "#1f2937",
-        light: "#ffffff",
-      },
-    })
-      .then((dataUrl) => {
-        if (!cancelled) {
-          setPngUrl(dataUrl);
-          setQrError(null);
-        }
-      })
-      .catch((error: unknown) => {
-        console.error(error);
-        if (!cancelled) {
-          setQrError("QR unavailable");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  async function downloadPng() {
-    try {
-      const dataUrl = await QRCode.toDataURL(url, {
-        errorCorrectionLevel: "M",
-        margin: 2,
-        scale: 10,
-      });
-      const anchor = document.createElement("a");
-      anchor.href = dataUrl;
-      anchor.download = `${code}-qr.png`;
-      anchor.click();
-    } catch (error) {
-      console.error(error);
-      toast.error("Could not download PNG.");
-    }
-  }
-
-  async function downloadSvg() {
-    try {
-      const svg = await QRCode.toString(url, {
-        type: "svg",
-        errorCorrectionLevel: "M",
-        margin: 2,
-      });
-      await downloadText(`${code}-qr.svg`, svg, "image/svg+xml");
-    } catch (error) {
-      console.error(error);
-      toast.error("Could not download SVG.");
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-      <div className="grid size-28 place-items-center rounded-md border bg-white p-2">
-        {pngUrl ? (
-          <img src={pngUrl} alt={`QR code for ${code}`} className="size-full" />
-        ) : (
-          <span className="text-xs text-muted-foreground">{qrError ?? "Generating"}</span>
-        )}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" onClick={downloadPng}>
-          <Download />
-          PNG
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={downloadSvg}>
-          <Download />
-          SVG
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function AdminRoute() {
   const [session, setSession] = useState<Session | null>(null);
   const [adminState, setAdminState] = useState<AdminState>("checking");
@@ -223,6 +123,7 @@ function AdminRoute() {
   const [notes, setNotes] = useState("");
   const [invites, setInvites] = useState<InvitationCodeRow[]>([]);
   const [responses, setResponses] = useState<RsvpResponseRow[]>([]);
+  const [songRequests, setSongRequests] = useState<Array<{ invite_code: string }>>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -278,15 +179,17 @@ function AdminRoute() {
       const [
         { data: inviteRows, error: inviteError },
         { data: responseRows, error: responseError },
+        { data: songRows, error: songError },
       ] = await Promise.all([
         supabase.from("invitation_codes").select("*").order("created_at", { ascending: false }),
         supabase.from("rsvp_responses").select("*").order("submitted_at", { ascending: false }),
+        supabase.from("song_requests").select("invite_code"),
       ]);
 
       if (requestId !== loadRequest.current) return;
 
-      if (inviteError || responseError) {
-        const error = inviteError ?? responseError;
+      if (inviteError || responseError || songError) {
+        const error = inviteError ?? responseError ?? songError;
 
         if (isAccessError(error)) {
           setAdminState("denied");
@@ -301,6 +204,7 @@ function AdminRoute() {
 
       setInvites(inviteRows ?? []);
       setResponses(responseRows ?? []);
+      setSongRequests((songRows as Array<{ invite_code: string }> | null) ?? []);
       setAdminState("admin");
     } finally {
       if (requestId === loadRequest.current) {
@@ -336,6 +240,7 @@ function AdminRoute() {
       loadRequest.current += 1;
       setInvites([]);
       setResponses([]);
+      setSongRequests([]);
     }
   }, [loadAdminData, session]);
 
@@ -418,8 +323,8 @@ function AdminRoute() {
 
   async function copyLink(code: string) {
     try {
-      await navigator.clipboard.writeText(makeRsvpUrl(code));
-      toast.success("RSVP link copied.");
+      await navigator.clipboard.writeText(makeInvitationUrl(code));
+      toast.success("Invitation URL copied.");
     } catch (error) {
       console.error(error);
       toast.error("Could not copy link.");
@@ -567,7 +472,7 @@ function AdminRoute() {
         <Card className="rounded-lg">
           <CardHeader>
             <CardTitle>Generate invitation</CardTitle>
-            <CardDescription>Create a unique RSVP code and QR link.</CardDescription>
+            <CardDescription>Create a unique invite code.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={onGenerateInvite} className="grid gap-4 md:grid-cols-[1fr_auto]">
@@ -595,7 +500,7 @@ function AdminRoute() {
           <CardHeader>
             <CardTitle>Invitation codes</CardTitle>
             <CardDescription>
-              Copy RSVP links, download QR codes, or disable a code.
+              Copy invitation URLs, monitor limits, or disable a code.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -604,27 +509,29 @@ function AdminRoute() {
                 No invitation codes have been generated yet.
               </div>
             ) : (
-              <div className="grid gap-4 lg:grid-cols-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead><TableHead>Status</TableHead><TableHead>Invitation URL</TableHead><TableHead>RSVPs</TableHead><TableHead>Music requests</TableHead><TableHead>Notes</TableHead><TableHead>Created</TableHead><TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                 {invites.map((invite) => {
-                  const url = makeRsvpUrl(invite.code);
+                  const url = makeInvitationUrl(invite.code);
                   const status = inviteStatus(invite);
+                  const rsvpCount = responses.filter((response) => response.invite_code === invite.code).length;
+                  const musicCount = songRequests.filter((request) => request.invite_code === invite.code).length;
 
                   return (
-                    <div key={invite.id} className="rounded-lg border bg-background p-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0 space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="font-mono text-base font-semibold">{invite.code}</h2>
-                            <StatusBadge status={status} />
-                          </div>
-                          <p className="break-all text-xs text-muted-foreground">{url}</p>
-                          {invite.notes ? (
-                            <p className="text-sm text-muted-foreground">{invite.notes}</p>
-                          ) : null}
-                          <p className="text-xs text-muted-foreground">
-                            Created {formatDate(invite.created_at)}
-                          </p>
-                        </div>
+                    <TableRow key={invite.id}>
+                      <TableCell className="font-mono text-xs">{invite.code}</TableCell>
+                      <TableCell><StatusBadge status={status} /></TableCell>
+                      <TableCell className="max-w-80 break-all text-xs text-muted-foreground">{url}</TableCell>
+                      <TableCell>{rsvpCount} / 1</TableCell>
+                      <TableCell>{musicCount} / 3</TableCell>
+                      <TableCell className="max-w-56 whitespace-normal">{invite.notes || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatDate(invite.created_at)}</TableCell>
+                      <TableCell>
                         <div className="flex shrink-0 flex-wrap gap-2">
                           <Button
                             type="button"
@@ -650,14 +557,12 @@ function AdminRoute() {
                             Disable
                           </Button>
                         </div>
-                      </div>
-                      <div className="mt-4">
-                        <QrPanel code={invite.code} url={url} />
-                      </div>
-                    </div>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </div>
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
