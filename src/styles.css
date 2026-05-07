@@ -44,21 +44,21 @@
 :root {
   --radius: 0.25rem;
 
-  /* Wedding watercolor palette */
-  --background: oklch(0.992 0.008 95);          /* warm cream */
+  /* Wedding watercolor palette — bold, saturated, painterly */
+  --background: oklch(0.995 0.003 95);          /* near-white paper */
   --foreground: oklch(0.32 0.05 110);           /* deep olive ink */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.32 0.05 110);
-  --popover: oklch(0.992 0.008 95);
+  --popover: oklch(0.995 0.003 95);
   --popover-foreground: oklch(0.32 0.05 110);
 
   --primary: oklch(0.42 0.07 110);              /* olive */
-  --primary-foreground: oklch(0.992 0.008 95);
+  --primary-foreground: oklch(0.995 0.003 95);
   --secondary: oklch(0.95 0.04 90);
   --secondary-foreground: oklch(0.32 0.05 110);
   --muted: oklch(0.95 0.02 95);
   --muted-foreground: oklch(0.5 0.04 105);
-  --accent: oklch(0.85 0.09 60);                /* coral accent */
+  --accent: oklch(0.78 0.16 38);                /* vivid coral */
   --accent-foreground: oklch(0.32 0.05 110);
   --destructive: oklch(0.55 0.18 28);
   --destructive-foreground: oklch(0.99 0 0);
@@ -66,12 +66,13 @@
   --input: oklch(0.42 0.07 110 / 25%);
   --ring: oklch(0.42 0.07 110);
 
-  --coral: oklch(0.82 0.1 45);
-  --lemon: oklch(0.92 0.13 100);
-  --sage: oklch(0.85 0.08 130);
+  /* Saturated blob colors pulled from the reference watercolor */
+  --coral: oklch(0.78 0.16 38);                 /* peach / salmon */
+  --lemon: oklch(0.93 0.19 102);                /* vivid lemon */
+  --sage:  oklch(0.78 0.20 138);                /* leaf green */
   --olive: oklch(0.42 0.07 110);
-  --cream: oklch(0.992 0.008 95);
-  --ink: oklch(0.28 0.05 110);
+  --cream: oklch(0.995 0.003 95);
+  --ink:   oklch(0.28 0.05 110);
 }
 
 .dark {
@@ -243,23 +244,24 @@
   .section-theme::before {
     content: "";
     position: absolute;
-    inset: -8% 0;            /* extend past edges so the wash overlaps neighbours */
+    inset: -10% 0;           /* extend past edges so the wash overlaps neighbours */
     pointer-events: none;
     z-index: 0;
-    opacity: 0.9;
-    /* Vertical alpha mask: invisible at top/bottom, full strength in the middle */
+    opacity: 1;
+    /* Vertical alpha mask: invisible at top/bottom, full strength in the middle.
+       Tighter mask = bolder painted band, softer fade where sections meet. */
     -webkit-mask-image: linear-gradient(
       to bottom,
       transparent 0%,
-      black 22%,
-      black 78%,
+      black 18%,
+      black 82%,
       transparent 100%
     );
     mask-image: linear-gradient(
       to bottom,
       transparent 0%,
-      black 22%,
-      black 78%,
+      black 18%,
+      black 82%,
       transparent 100%
     );
   }
