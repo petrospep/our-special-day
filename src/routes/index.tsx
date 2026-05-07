@@ -187,10 +187,17 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
 
     setSubmitting(true);
 
-    const { error } = await supabase.from("song_requests").insert(parsed.data);
+    const { error } = await supabase.from("song_requests").insert({
+      ...parsed.data,
+      invite_code: manualCode.trim().toLowerCase(),
+    });
     setSubmitting(false);
     if (error) {
-      toast.error("Could not save your request. Please try again.");
+      if (error.message?.includes("song_request_limit_reached")) {
+        toast.error("This invite code already reached the 3 music-request limit.");
+      } else {
+        toast.error("Could not save your request. Please try again.");
+      }
       return;
     }
     toast.success("Added to the playlist 🎶");
