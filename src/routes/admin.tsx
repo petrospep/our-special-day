@@ -94,62 +94,8 @@ function makeInvitationUrl(code: string) {
   return url.toString();
 }
 
-async function copyTextToClipboard(text: string) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.top = "0";
-  textarea.style.left = "-9999px";
-  document.body.appendChild(textarea);
-  textarea.select();
-
-  try {
-    const copied = document.execCommand("copy");
-
-    if (!copied) {
-      throw new Error("Copy command was rejected.");
-    }
-  } finally {
-    document.body.removeChild(textarea);
-  }
-}
-
-function startDeferredClipboardCopy() {
-  if (!navigator.clipboard || !window.isSecureContext || !("ClipboardItem" in window)) {
-    return null;
-  }
-
-  let resolveText: (text: string) => void;
-  let rejectText: (error: unknown) => void;
-  const clipboardText = new Promise<Blob>((resolve, reject) => {
-    resolveText = (text) => resolve(new Blob([text], { type: "text/plain" }));
-    rejectText = reject;
-  });
-
-  try {
-    return {
-      resolve: resolveText!,
-      reject: rejectText!,
-      copyPromise: navigator.clipboard.write([
-        new ClipboardItem({
-          "text/plain": clipboardText,
-        }),
-      ]),
-    };
-  } catch {
-    rejectText!(new Error("Deferred clipboard copy is not supported."));
-    return null;
-  }
-}
-
 async function copyInvitationUrl(code: string) {
-  await copyTextToClipboard(makeInvitationUrl(code));
+  await navigator.clipboard.writeText(makeInvitationUrl(code));
 }
 
 function StatusBadge({ status }: { status: InviteStatus }) {
@@ -351,7 +297,6 @@ function AdminRoute() {
   async function onGenerateInvite(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setGenerating(true);
-    const deferredCopy = startDeferredClipboardCopy();
 
     try {
       const token = await getAccessToken();
@@ -362,15 +307,8 @@ function AdminRoute() {
       );
       setNotes("");
       if (response.ok) {
-        const generatedUrl = makeInvitationUrl(response.code);
-
         try {
-          if (deferredCopy) {
-            deferredCopy.resolve(generatedUrl);
-            await deferredCopy.copyPromise;
-          } else {
-            await copyTextToClipboard(generatedUrl);
-          }
+          await copyInvitationUrl(response.code);
           toast.success("Invitation code generated and URL copied.");
         } catch (error) {
           console.error(error);
@@ -380,8 +318,6 @@ function AdminRoute() {
       }
       await loadAdminData(session);
     } catch (error) {
-      deferredCopy?.reject(error);
-      await deferredCopy?.copyPromise.catch(() => undefined);
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Could not generate invite.");
     } finally {
@@ -596,74 +532,55 @@ function AdminRoute() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Invitation URL</TableHead>
-                    <TableHead>RSVPs</TableHead>
-                    <TableHead>Music requests</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Code</TableHead><TableHead>Status</TableHead><TableHead>Invitation URL</TableHead><TableHead>RSVPs</TableHead><TableHead>Music requests</TableHead><TableHead>Notes</TableHead><TableHead>Created</TableHead><TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invites.map((invite) => {
-                    const url = makeInvitationUrl(invite.code);
-                    const status = inviteStatus(invite);
-                    const rsvpCount = responses.filter(
-                      (response) => response.invite_code === invite.code,
-                    ).length;
-                    const musicCount = songRequests.filter(
-                      (request) => request.invite_code === invite.code,
-                    ).length;
+                {invites.map((invite) => {
+                  const url = makeInvitationUrl(invite.code);
+                  const status = inviteStatus(invite);
+                  const rsvpCount = responses.filter((response) => response.invite_code === invite.code).length;
+                  const musicCount = songRequests.filter((request) => request.invite_code === invite.code).length;
 
-                    return (
-                      <TableRow key={invite.id}>
-                        <TableCell className="font-mono text-xs">{invite.code}</TableCell>
-                        <TableCell>
-                          <StatusBadge status={status} />
-                        </TableCell>
-                        <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
-                          {url}
-                        </TableCell>
-                        <TableCell>{rsvpCount} / 1</TableCell>
-                        <TableCell>{musicCount} / 3</TableCell>
-                        <TableCell className="max-w-56 whitespace-normal">
-                          {invite.notes || "—"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDate(invite.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex shrink-0 flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => void copyLink(invite.code)}
-                            >
-                              <Copy />
-                              Copy
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              disabled={status === "disabled" || disablingCode === invite.code}
-                              onClick={() => void onDisableInvite(invite.code)}
-                            >
-                              {disablingCode === invite.code ? (
-                                <Loader2 className="animate-spin" />
-                              ) : (
-                                <XCircle />
-                              )}
-                              Disable
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  return (
+                    <TableRow key={invite.id}>
+                      <TableCell className="font-mono text-xs">{invite.code}</TableCell>
+                      <TableCell><StatusBadge status={status} /></TableCell>
+                      <TableCell className="max-w-80 break-all text-xs text-muted-foreground">{url}</TableCell>
+                      <TableCell>{rsvpCount} / 1</TableCell>
+                      <TableCell>{musicCount} / 3</TableCell>
+                      <TableCell className="max-w-56 whitespace-normal">{invite.notes || "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">{formatDate(invite.created_at)}</TableCell>
+                      <TableCell>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void copyLink(invite.code)}
+                          >
+                            <Copy />
+                            Copy
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={status === "disabled" || disablingCode === invite.code}
+                            onClick={() => void onDisableInvite(invite.code)}
+                          >
+                            {disablingCode === invite.code ? (
+                              <Loader2 className="animate-spin" />
+                            ) : (
+                              <XCircle />
+                            )}
+                            Disable
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 </TableBody>
               </Table>
             )}
