@@ -88,6 +88,28 @@ export type SubmitRsvpResponse =
         | "server_not_configured";
     };
 
+export type SubmitSongRequestRequest = {
+  code: string;
+  guestName: string;
+  songTitle: string;
+  artist: string;
+};
+
+export type SubmitSongRequestResponse =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error:
+        | "invalid_code"
+        | "disabled_code"
+        | "used_code"
+        | "song_request_limit_reached"
+        | "invalid_input"
+        | "server_not_configured";
+    };
+
 export type GenerateInviteRequest = {
   notes?: string | null;
 };

@@ -1,4 +1,14 @@
-import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import {
+  Outlet,
+  Link,
+  createRootRoute,
+  HeadContent,
+  Scripts,
+  useNavigate,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 
@@ -30,7 +40,11 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Petros & Nikki — 25 July 2026, Athens" },
-      { name: "description", content: "Save the date. Join Petros & Nikki for their wedding in Athens, Greece on 25 July 2026." },
+      {
+        name: "description",
+        content:
+          "Save the date. Join Petros & Nikki for their wedding in Athens, Greece on 25 July 2026.",
+      },
       { name: "author", content: "Petros & Nikki" },
       { property: "og:title", content: "Petros & Nikki — 25 July 2026" },
       { property: "og:description", content: "Save the date. Athens, Greece — 25 July 2026." },
@@ -71,6 +85,7 @@ import { Toaster } from "../components/ui/sonner";
 function RootComponent() {
   return (
     <>
+      <AuthRedirectHandler />
       <SiteHeader />
       <main>
         <Outlet />
@@ -79,4 +94,55 @@ function RootComponent() {
       <Toaster />
     </>
   );
+}
+
+function AuthRedirectHandler() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let active = true;
+
+    async function handleAuthRedirect() {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const errorDescription = hashParams.get("error_description");
+
+      if (errorDescription) {
+        toast.error(errorDescription);
+        window.history.replaceState(null, document.title, window.location.pathname);
+        return;
+      }
+
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+
+      if (!accessToken || !refreshToken) return;
+
+      const { error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      if (!active) return;
+
+      if (error) {
+        console.error(error);
+        toast.error("Could not finish signing in. Please request a new magic link.");
+        window.history.replaceState(null, document.title, window.location.pathname);
+        return;
+      }
+
+      window.history.replaceState(null, document.title, window.location.pathname);
+      await navigate({ to: "/admin" });
+    }
+
+    void handleAuthRedirect();
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
+
+  return null;
 }

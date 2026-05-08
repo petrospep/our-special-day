@@ -31,6 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -57,6 +58,7 @@ import { cn } from "@/lib/utils";
 type AdminState = "checking" | "logged_out" | "denied" | "admin";
 type LoginMode = "magic" | "password";
 type InviteStatus = "unused" | "used" | "disabled";
+type BulkAction = "disable" | "delete";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -107,6 +109,16 @@ function makeInvitationUrl(code: string) {
   return url.toString();
 }
 
+function makeAdminUrl() {
+  const adminPath = `${getBasePath()}admin`;
+
+  if (typeof window === "undefined") {
+    return adminPath;
+  }
+
+  return new URL(adminPath, window.location.origin).toString();
+}
+
 async function copyInvitationUrl(code: string) {
   await navigator.clipboard.writeText(makeInvitationUrl(code));
 }
@@ -153,6 +165,8 @@ function AdminRoute() {
   const [generating, setGenerating] = useState(false);
   const [disablingCode, setDisablingCode] = useState<string | null>(null);
   const [deletingCode, setDeletingCode] = useState<string | null>(null);
+  const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
+  const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
   const loadRequest = useRef(0);
 
   const totals = useMemo(() => {
@@ -170,6 +184,20 @@ function AdminRoute() {
       { attending: 0, declined: 0, guests: 0 },
     );
   }, [responses]);
+
+  const selectedInvites = useMemo(() => {
+    const selectedCodeSet = new Set(selectedCodes);
+
+    return invites.filter((invite) => selectedCodeSet.has(invite.code));
+  }, [invites, selectedCodes]);
+
+  const selectedActiveInvites = useMemo(() => {
+    return selectedInvites.filter((invite) => !invite.disabled);
+  }, [selectedInvites]);
+
+  const allInvitesSelected =
+    invites.length > 0 && invites.every((invite) => selectedCodes.includes(invite.code));
+  const someInvitesSelected = selectedCodes.length > 0 && !allInvitesSelected;
 
   const loadAdminData = useCallback(async (activeSession: Session | null) => {
     if (!activeSession) {
@@ -269,6 +297,25 @@ function AdminRoute() {
     }
   }, [loadAdminData, session]);
 
+  useEffect(() => {
+    const inviteCodes = new Set(invites.map((invite) => invite.code));
+    setSelectedCodes((current) => current.filter((code) => inviteCodes.has(code)));
+  }, [invites]);
+
+  function toggleInviteSelection(code: string, checked: boolean) {
+    setSelectedCodes((current) => {
+      if (checked) {
+        return current.includes(code) ? current : [...current, code];
+      }
+
+      return current.filter((selectedCode) => selectedCode !== code);
+    });
+  }
+
+  function toggleAllInviteSelection(checked: boolean) {
+    setSelectedCodes(checked ? invites.map((invite) => invite.code) : []);
+  }
+
   async function onLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoggingIn(true);
@@ -278,7 +325,7 @@ function AdminRoute() {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: typeof window === "undefined" ? undefined : window.location.href,
+            emailRedirectTo: makeAdminUrl(),
           },
         });
 
@@ -374,6 +421,80 @@ function AdminRoute() {
       toast.error(error instanceof Error ? error.message : "Could not delete invite.");
     } finally {
       setDeletingCode(null);
+    }
+  }
+
+  async function onBulkDisableInvites() {
+    if (selectedActiveInvites.length === 0) {
+      toast.error("Selected codes are already disabled.");
+      return;
+    }
+
+    setBulkAction("disable");
+
+    try {
+      const token = await getAccessToken();
+
+      await Promise.all(
+        selectedActiveInvites.map((invite) =>
+          callFunction<DisableInviteResponse>("disable-invite", { code: invite.code }, token),
+        ),
+      );
+
+      toast.success(`${selectedActiveInvites.length} invitation code(s) disabled.`);
+      setSelectedCodes([]);
+      await loadAdminData(session);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Could not disable selected invites.");
+    } finally {
+      setBulkAction(null);
+    }
+  }
+
+  async function onBulkDeleteInvites() {
+    if (selectedInvites.length === 0) return;
+
+    setBulkAction("delete");
+
+    let deletedCount = 0;
+    let blockedCount = 0;
+    let failedCount = 0;
+
+    try {
+      const token = await getAccessToken();
+
+      for (const invite of selectedInvites) {
+        try {
+          await callFunction<DeleteInviteResponse>("delete-invite", { code: invite.code }, token);
+          deletedCount += 1;
+        } catch (error) {
+          console.error(error);
+
+          if (error instanceof Error && error.message === "has_related_records") {
+            blockedCount += 1;
+          } else {
+            failedCount += 1;
+          }
+        }
+      }
+
+      if (deletedCount > 0) {
+        toast.success(`${deletedCount} invitation code(s) deleted.`);
+      }
+
+      if (blockedCount > 0) {
+        toast.error(`${blockedCount} code(s) have RSVP or music records. Disable them instead.`);
+      }
+
+      if (failedCount > 0) {
+        toast.error(`${failedCount} code(s) could not be deleted.`);
+      }
+
+      setSelectedCodes([]);
+      await loadAdminData(session);
+    } finally {
+      setBulkAction(null);
     }
   }
 
@@ -565,114 +686,220 @@ function AdminRoute() {
                 No invitation codes have been generated yet.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Invitation URL</TableHead>
-                    <TableHead>RSVPs</TableHead>
-                    <TableHead>Music requests</TableHead>
-                    <TableHead>Notes</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invites.map((invite) => {
-                    const url = makeInvitationUrl(invite.code);
-                    const status = inviteStatus(invite);
-                    const rsvpCount = responses.filter(
-                      (response) => response.invite_code === invite.code,
-                    ).length;
-                    const musicCount = songRequests.filter(
-                      (request) => request.invite_code === invite.code,
-                    ).length;
+              <div className="space-y-3">
+                {selectedCodes.length > 0 && (
+                  <div className="flex flex-col gap-3 rounded-md border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      {selectedCodes.length} invitation code(s) selected
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            disabled={bulkAction !== null || selectedActiveInvites.length === 0}
+                          >
+                            {bulkAction === "disable" ? (
+                              <Loader2 className="animate-spin" />
+                            ) : (
+                              <XCircle />
+                            )}
+                            Disable selected
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Disable selected codes?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will disable {selectedActiveInvites.length} selected active
+                              code(s). Disabled codes can no longer be used to RSVP or request
+                              music.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className={buttonVariants({ variant: "destructive" })}
+                              onClick={() => void onBulkDisableInvites()}
+                            >
+                              Disable codes
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={bulkAction !== null}
+                          >
+                            {bulkAction === "delete" ? (
+                              <Loader2 className="animate-spin" />
+                            ) : (
+                              <Trash2 />
+                            )}
+                            Delete selected
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete selected codes?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete {selectedCodes.length} selected code(s).
+                              Codes with RSVP or music records cannot be deleted; disable them
+                              instead.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              className={buttonVariants({ variant: "destructive" })}
+                              onClick={() => void onBulkDeleteInvites()}
+                            >
+                              Delete codes
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                )}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            allInvitesSelected
+                              ? true
+                              : someInvitesSelected
+                                ? "indeterminate"
+                                : false
+                          }
+                          onCheckedChange={(checked) => toggleAllInviteSelection(checked === true)}
+                          aria-label="Select all invitation codes"
+                        />
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Invitation URL</TableHead>
+                      <TableHead>RSVPs</TableHead>
+                      <TableHead>Music requests</TableHead>
+                      <TableHead>Notes</TableHead>
+                      <TableHead>Created</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {invites.map((invite) => {
+                      const url = makeInvitationUrl(invite.code);
+                      const status = inviteStatus(invite);
+                      const rsvpCount = responses.filter(
+                        (response) => response.invite_code === invite.code,
+                      ).length;
+                      const musicCount = songRequests.filter(
+                        (request) => request.invite_code === invite.code,
+                      ).length;
+                      const selected = selectedCodes.includes(invite.code);
 
-                    return (
-                      <TableRow key={invite.id}>
-                        <TableCell className="font-mono text-xs">{invite.code}</TableCell>
-                        <TableCell>
-                          <StatusBadge status={status} />
-                        </TableCell>
-                        <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
-                          {url}
-                        </TableCell>
-                        <TableCell>{rsvpCount} / 1</TableCell>
-                        <TableCell>{musicCount} / 3</TableCell>
-                        <TableCell className="max-w-56 whitespace-normal">
-                          {invite.notes || "—"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDate(invite.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex shrink-0 flex-wrap gap-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => void copyLink(invite.code)}
-                            >
-                              <Copy />
-                              Copy
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              disabled={status === "disabled" || disablingCode === invite.code}
-                              onClick={() => void onDisableInvite(invite.code)}
-                            >
-                              {disablingCode === invite.code ? (
-                                <Loader2 className="animate-spin" />
-                              ) : (
-                                <XCircle />
-                              )}
-                              Disable
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={deletingCode === invite.code}
-                                >
-                                  {deletingCode === invite.code ? (
-                                    <Loader2 className="animate-spin" />
-                                  ) : (
-                                    <Trash2 />
-                                  )}
-                                  Delete
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete invitation code?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will permanently delete {invite.code}. Codes with RSVP or
-                                    music records cannot be deleted; disable them instead.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className={buttonVariants({ variant: "destructive" })}
-                                    onClick={() => void onDeleteInvite(invite.code)}
+                      return (
+                        <TableRow key={invite.id} data-state={selected ? "selected" : undefined}>
+                          <TableCell className="font-mono text-xs">{invite.code}</TableCell>
+                          <TableCell>
+                            <Checkbox
+                              checked={selected}
+                              onCheckedChange={(checked) =>
+                                toggleInviteSelection(invite.code, checked === true)
+                              }
+                              aria-label={`Select invitation code ${invite.code}`}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge status={status} />
+                          </TableCell>
+                          <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
+                            {url}
+                          </TableCell>
+                          <TableCell>{rsvpCount} / 1</TableCell>
+                          <TableCell>{musicCount} / 3</TableCell>
+                          <TableCell className="max-w-56 whitespace-normal">
+                            {invite.notes || "—"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDate(invite.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex shrink-0 flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void copyLink(invite.code)}
+                              >
+                                <Copy />
+                                Copy
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                disabled={status === "disabled" || disablingCode === invite.code}
+                                onClick={() => void onDisableInvite(invite.code)}
+                              >
+                                {disablingCode === invite.code ? (
+                                  <Loader2 className="animate-spin" />
+                                ) : (
+                                  <XCircle />
+                                )}
+                                Disable
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={deletingCode === invite.code}
                                   >
-                                    Delete code
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                                    {deletingCode === invite.code ? (
+                                      <Loader2 className="animate-spin" />
+                                    ) : (
+                                      <Trash2 />
+                                    )}
+                                    Delete
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete invitation code?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently delete {invite.code}. Codes with RSVP or
+                                      music records cannot be deleted; disable them instead.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className={buttonVariants({ variant: "destructive" })}
+                                      onClick={() => void onDeleteInvite(invite.code)}
+                                    >
+                                      Delete code
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

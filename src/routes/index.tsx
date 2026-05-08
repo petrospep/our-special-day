@@ -10,11 +10,10 @@ import { MapPin, Clock, Shirt, Music, Heart } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { callFunction } from "@/lib/functions";
 import { RsvpContent } from "@/components/RsvpContent";
-import type { ValidateInviteResponse } from "@/lib/rsvp-types";
+import type { SubmitSongRequestResponse, ValidateInviteResponse } from "@/lib/rsvp-types";
 import { inviteCodeSchema } from "@/lib/rsvp-validation";
 import couplePhoto from "@/assets/couplephoto.jpg";
 
@@ -187,21 +186,26 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
 
     setSubmitting(true);
 
-    const { error } = await supabase.from("song_requests").insert({
-      ...parsed.data,
-      invite_code: manualCode.trim().toLowerCase(),
-    });
-    setSubmitting(false);
-    if (error) {
-      if (error.message?.includes("song_request_limit_reached")) {
+    try {
+      await callFunction<SubmitSongRequestResponse>("submit-song-request", {
+        code: manualCode.trim().toLowerCase(),
+        guestName: parsed.data.guest_name,
+        songTitle: parsed.data.song_title,
+        artist: parsed.data.artist,
+      });
+      toast.success("Added to the playlist 🎶");
+      form.reset();
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof Error && error.message === "song_request_limit_reached") {
         toast.error("This invite code already reached the 3 music-request limit.");
       } else {
         toast.error("Could not save your request. Please try again.");
       }
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    toast.success("Added to the playlist 🎶");
-    form.reset();
   }
 
   useEffect(() => {
