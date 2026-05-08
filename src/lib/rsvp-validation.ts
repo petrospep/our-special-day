@@ -7,7 +7,7 @@ export const inviteCodeSchema = z
   })
   .trim()
   .toLowerCase()
-  .regex(/^w-[a-km-np-z2-9]{8,16}$/, "Enter a valid invitation code.");
+  .regex(/^w-[a-z0-9]{8,16}$/, "Enter a valid invitation code.");
 
 const optionalTextSchema = (maxLength: number, message: string) =>
   z.preprocess(
