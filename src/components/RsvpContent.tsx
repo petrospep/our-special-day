@@ -13,7 +13,8 @@ import { inviteCodeSchema, rsvpFormSchema } from "@/lib/rsvp-validation";
 
 type RsvpStatus = "idle" | "validating" | "invalid" | "ready" | "submitting" | "success" | "error";
 type InvalidReason = Exclude<InviteCodeStatus, "valid"> | "invalid_format";
-type FieldErrors = Partial<Record<"fullName" | "attending" | "guestCount", string>>;
+type FieldErrors = Partial<Record<string, string>>;
+type GuestFormValue = { firstName: string; lastName: string; under13: boolean; age: string };
 
 const invalidCopy: Record<InvalidReason, { title: string; message: string; action: string }> = {
   missing_code: {
@@ -51,9 +52,9 @@ function getFieldErrors(error: {
   issues: Array<{ path: Array<string | number>; message: string }>;
 }) {
   return error.issues.reduce<FieldErrors>((errors, issue) => {
-    const field = issue.path[0];
+    const field = issue.path.join(".");
 
-    if (field === "fullName" || field === "attending" || field === "guestCount") {
+    if (field) {
       errors[field] = issue.message;
     }
 
@@ -70,9 +71,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
   const [codeError, setCodeError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FieldErrors>({});
   const [attending, setAttending] = useState<"yes" | "no" | null>(null);
-  const [additionalGuests, setAdditionalGuests] = useState<
-    Array<{ firstName: string; lastName: string; under13: boolean }>
-  >([]);
+  const [additionalGuests, setAdditionalGuests] = useState<GuestFormValue[]>([]);
   const activeValidation = useRef(0);
   const submitInFlight = useRef(false);
 
@@ -167,9 +166,17 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     const attendingValue = formData.get("attending");
     const parsed = rsvpFormSchema.safeParse({
       code,
-      fullName: formData.get("fullName"),
+      submitter: {
+        firstName: formData.get("submitterFirstName"),
+        lastName: formData.get("submitterLastName"),
+      },
       attending: attendingValue === "yes" ? true : attendingValue === "no" ? false : undefined,
-      guestCount: formData.get("guestCount") || 1,
+      email: formData.get("email"),
+      phoneNumber: formData.get("phoneNumber"),
+      guests: additionalGuests.map((guest) => ({
+        ...guest,
+        age: guest.under13 ? guest.age : undefined,
+      })),
       dietaryRequirements: null,
       notes: null,
     });
@@ -188,9 +195,18 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     try {
       await callFunction<SubmitRsvpResponse>("submit-rsvp", {
         code: parsed.data.code,
-        fullName: parsed.data.fullName,
+        submitter: {
+          ...parsed.data.submitter,
+          under13: false,
+          age: null,
+        },
         attending: parsed.data.attending,
-        guestCount: parsed.data.guestCount,
+        email: parsed.data.email ?? null,
+        phoneNumber: parsed.data.phoneNumber ?? null,
+        guests: parsed.data.guests.map((guest) => ({
+          ...guest,
+          age: guest.age ?? null,
+        })),
         dietaryRequirements: parsed.data.dietaryRequirements ?? null,
         notes: parsed.data.notes ?? null,
       });
@@ -281,7 +297,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
               onAddGuest={() =>
                 setAdditionalGuests((current) => [
                   ...current,
-                  { firstName: "", lastName: "", under13: false },
+                  { firstName: "", lastName: "", under13: false, age: "" },
                 ])
               }
               onRemoveGuest={(index) =>
@@ -292,7 +308,13 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
               onGuestChange={(index, key, value) =>
                 setAdditionalGuests((current) =>
                   current.map((guest, guestIndex) =>
-                    guestIndex === index ? { ...guest, [key]: value } : guest,
+                    guestIndex === index
+                      ? {
+                          ...guest,
+                          [key]: value,
+                          ...(key === "under13" && value === false ? { age: "" } : {}),
+                        }
+                      : guest,
                   ),
                 )
               }
@@ -432,14 +454,14 @@ function RsvpForm({
   attending: "yes" | "no" | null;
   errors: FieldErrors;
   submitting: boolean;
-  additionalGuests: Array<{ firstName: string; lastName: string; under13: boolean }>;
+  additionalGuests: GuestFormValue[];
   onAttendingChange: (value: "yes" | "no") => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onAddGuest: () => void;
   onRemoveGuest: (index: number) => void;
   onGuestChange: (
     index: number,
-    key: "firstName" | "lastName" | "under13",
+    key: "firstName" | "lastName" | "under13" | "age",
     value: string | boolean,
   ) => void;
 }) {
@@ -447,7 +469,44 @@ function RsvpForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
-      <Input name="fullName" label="Full name" error={errors.fullName} autoComplete="name" />
+      <fieldset>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Input
+            name="submitterFirstName"
+            label="First name"
+            error={errors["submitter.firstName"]}
+            autoComplete="given-name"
+            required
+          />
+          <Input
+            name="submitterLastName"
+            label="Last name"
+            error={errors["submitter.lastName"]}
+            autoComplete="family-name"
+            required
+          />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="eyebrow mb-3">Contact details</legend>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Input
+            name="email"
+            type="email"
+            label="Email (optional)"
+            error={errors.email}
+            autoComplete="email"
+          />
+          <Input
+            name="phoneNumber"
+            type="tel"
+            label="Phone number (optional)"
+            error={errors.phoneNumber}
+            autoComplete="tel"
+          />
+        </div>
+      </fieldset>
 
       <fieldset aria-describedby={errors.attending ? "attending-error" : undefined}>
         <legend className="eyebrow mb-3">Will you be attending?</legend>
@@ -458,6 +517,7 @@ function RsvpForm({
             label="Joyfully accept"
             checked={attending === "yes"}
             onChange={() => onAttendingChange("yes")}
+            required
           />
           <RadioCard
             name="attending"
@@ -465,6 +525,7 @@ function RsvpForm({
             label="Regretfully decline"
             checked={attending === "no"}
             onChange={() => onAttendingChange("no")}
+            required
           />
         </div>
         {errors.attending && (
@@ -474,8 +535,7 @@ function RsvpForm({
         )}
       </fieldset>
 
-      <input name="guestCount" value={guestCount} readOnly hidden />
-      <fieldset aria-describedby={errors.guestCount ? "guest-count-error" : undefined}>
+      <fieldset aria-describedby={errors.guests ? "guest-count-error" : undefined}>
         <div className="flex items-center justify-between gap-3 mb-3">
           <legend className="eyebrow">RSVP list</legend>
           <button
@@ -495,24 +555,33 @@ function RsvpForm({
                 <input
                   value={guest.firstName}
                   onChange={(event) => onGuestChange(index, "firstName", event.target.value)}
+                  aria-invalid={Boolean(errors[`guests.${index}.firstName`])}
                   className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-                  placeholder={`Guest ${index + 1} first name`}
+                  placeholder="First name"
+                  required
                 />
                 <input
                   value={guest.lastName}
                   onChange={(event) => onGuestChange(index, "lastName", event.target.value)}
+                  aria-invalid={Boolean(errors[`guests.${index}.lastName`])}
                   className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-                  placeholder={`Guest ${index + 1} last name`}
+                  placeholder="Last name"
+                  required
                 />
               </div>
-              <label className="inline-flex items-center gap-2 text-sm text-foreground/80">
-                <input
-                  type="checkbox"
-                  checked={guest.under13}
-                  onChange={(event) => onGuestChange(index, "under13", event.target.checked)}
-                />
-                Under 13 years old
-              </label>
+              {(errors[`guests.${index}.firstName`] || errors[`guests.${index}.lastName`]) && (
+                <p className="text-sm text-destructive" role="alert">
+                  {errors[`guests.${index}.firstName`] || errors[`guests.${index}.lastName`]}
+                </p>
+              )}
+              <GuestAgeFields
+                idPrefix={`guest-${index}`}
+                under13={guest.under13}
+                age={guest.age}
+                ageError={errors[`guests.${index}.age`]}
+                onUnder13Change={(checked) => onGuestChange(index, "under13", checked)}
+                onAgeChange={(value) => onGuestChange(index, "age", value)}
+              />
               <button
                 type="button"
                 onClick={() => onRemoveGuest(index)}
@@ -523,9 +592,9 @@ function RsvpForm({
             </div>
           ))}
         </div>
-        {errors.guestCount && (
+        {errors.guests && (
           <p id="guest-count-error" className="mt-2 text-sm text-destructive" role="alert">
-            {errors.guestCount}
+            {errors.guests}
           </p>
         )}
       </fieldset>
@@ -567,7 +636,7 @@ function SuccessPanel({ attending }: { attending: "yes" | "no" | null }) {
 function ErrorPanel({ onRetry }: { onRetry: () => void }) {
   const search = useSearch({ strict: false });
   const inviteCode = typeof search.code === "string" ? search.code.trim().toLowerCase() : undefined;
-  const homeSearch = inviteCode ? { code: inviteCode } : {};
+  const homeSearch = { code: inviteCode };
 
   return (
     <div className="text-center py-8">
@@ -596,6 +665,60 @@ function ErrorPanel({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+function GuestAgeFields({
+  idPrefix,
+  under13,
+  age,
+  ageError,
+  onUnder13Change,
+  onAgeChange,
+}: {
+  idPrefix: string;
+  under13: boolean;
+  age: string;
+  ageError?: string;
+  onUnder13Change: (checked: boolean) => void;
+  onAgeChange: (value: string) => void;
+}) {
+  const ageId = `${idPrefix}-age`;
+  const ageErrorId = `${ageId}-error`;
+
+  return (
+    <div className="mt-3 space-y-3">
+      <label className="inline-flex items-center gap-2 text-sm text-foreground/80">
+        <input
+          type="checkbox"
+          checked={under13}
+          onChange={(event) => onUnder13Change(event.target.checked)}
+        />
+        Under 13 years old
+      </label>
+      {under13 && (
+        <label className="block max-w-40">
+          <span className="eyebrow block mb-2">Age</span>
+          <input
+            id={ageId}
+            type="number"
+            min={0}
+            max={12}
+            inputMode="numeric"
+            value={age}
+            onChange={(event) => onAgeChange(event.target.value)}
+            aria-invalid={Boolean(ageError)}
+            aria-describedby={ageError ? ageErrorId : undefined}
+            className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+          />
+          {ageError && (
+            <span id={ageErrorId} className="mt-2 block text-sm text-destructive" role="alert">
+              {ageError}
+            </span>
+          )}
+        </label>
+      )}
+    </div>
+  );
+}
+
 function Input({
   name,
   label,
@@ -604,7 +727,7 @@ function Input({
   ...rest
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
-  name: keyof FieldErrors;
+  name: string;
   error?: string;
 }) {
   const errorId = `${name}-error`;
@@ -634,12 +757,14 @@ function RadioCard({
   label,
   checked,
   onChange,
+  required,
 }: {
   name: string;
   value: "yes" | "no";
   label: string;
   checked: boolean;
   onChange: () => void;
+  required?: boolean;
 }) {
   return (
     <label className="cursor-pointer">
@@ -649,6 +774,7 @@ function RadioCard({
         value={value}
         checked={checked}
         onChange={onChange}
+        required={required}
         className="peer sr-only"
       />
       <span className="block text-center border border-olive/25 py-4 px-3 text-sm tracking-wide text-olive peer-checked:bg-olive peer-checked:text-cream peer-checked:border-olive transition">

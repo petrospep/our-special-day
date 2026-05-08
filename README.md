@@ -92,6 +92,7 @@ Deploy all project Edge Functions:
 ```bash
 supabase functions deploy validate-invite --project-ref <project-ref> --no-verify-jwt
 supabase functions deploy submit-rsvp --project-ref <project-ref> --no-verify-jwt
+supabase functions deploy submit-song-request --project-ref <project-ref> --no-verify-jwt
 supabase functions deploy generate-invite --project-ref <project-ref> --no-verify-jwt
 supabase functions deploy disable-invite --project-ref <project-ref> --no-verify-jwt
 ```

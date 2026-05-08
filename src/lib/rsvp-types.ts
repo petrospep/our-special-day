@@ -38,9 +38,26 @@ export type RsvpResponseRow = TableRow<
     full_name: string;
     attending: boolean;
     guest_count: number;
+    email: string | null;
+    phone_number: string | null;
     dietary_requirements: string | null;
     notes: string | null;
     submitted_at: string;
+  }
+>;
+
+export type RsvpGuestRow = TableRow<
+  "rsvp_guests",
+  {
+    id: string;
+    rsvp_response_id: string;
+    invite_code: string;
+    first_name: string;
+    last_name: string;
+    is_submitter: boolean;
+    under_13: boolean;
+    age: number | null;
+    created_at: string;
   }
 >;
 
@@ -67,9 +84,21 @@ export type ValidateInviteResponse =
 
 export type SubmitRsvpRequest = {
   code: string;
-  fullName: string;
+  submitter: {
+    firstName: string;
+    lastName: string;
+    under13: boolean;
+    age?: number | null;
+  };
   attending: boolean;
-  guestCount: number;
+  email?: string | null;
+  phoneNumber?: string | null;
+  guests: Array<{
+    firstName: string;
+    lastName: string;
+    under13: boolean;
+    age?: number | null;
+  }>;
   dietaryRequirements?: string | null;
   notes?: string | null;
 };

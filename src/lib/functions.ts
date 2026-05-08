@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 type FunctionErrorPayload = {
   ok?: boolean;
@@ -44,9 +45,14 @@ export async function callFunction<T>(
     throw new Error("Missing VITE_SUPABASE_URL environment variable");
   }
 
+  if (!SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error("Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable");
+  }
+
   const response = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
     method: "POST",
     headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },

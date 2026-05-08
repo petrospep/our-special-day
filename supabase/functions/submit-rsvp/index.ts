@@ -2,23 +2,31 @@ import { createSupabaseAdminClient } from "../_shared/admin.ts";
 import { handleCors, withCors } from "../_shared/cors.ts";
 import { json, readJson } from "../_shared/json.ts";
 
-const MAX_FULL_NAME_LENGTH = 120;
+const MAX_NAME_LENGTH = 80;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_PHONE_LENGTH = 40;
 const MAX_OPTIONAL_TEXT_LENGTH = 1000;
+const MAX_GUESTS = 10;
+
+type GuestInput = {
+  firstName?: unknown;
+  lastName?: unknown;
+  under13?: unknown;
+  age?: unknown;
+};
 
 type SubmitRsvpBody = {
   code?: unknown;
-  fullName?: unknown;
+  submitter?: GuestInput;
   attending?: unknown;
-  guestCount?: unknown;
+  email?: unknown;
+  phoneNumber?: unknown;
+  guests?: unknown;
   dietaryRequirements?: unknown;
   notes?: unknown;
 };
 
-type SubmitRsvpError =
-  | "invalid_code"
-  | "disabled_code"
-  | "already_used"
-  | "invalid_input";
+type SubmitRsvpError = "invalid_code" | "disabled_code" | "already_used" | "invalid_input";
 
 type SubmitRsvpResult = {
   ok?: unknown;
@@ -85,27 +93,71 @@ Deno.serve(async (req) => {
   }
 
   const code = normalizeCode(body?.code);
-  const fullName = trimRequiredString(body?.fullName);
+  const submitter = body?.submitter;
   const attending = body?.attending;
-  const guestCount = body?.guestCount;
+  const email = trimOptionalString(body?.email);
+  const phoneNumber = trimOptionalString(body?.phoneNumber);
+  const guests = body?.guests;
   const dietaryRequirements = trimOptionalString(body?.dietaryRequirements);
   const notes = trimOptionalString(body?.notes);
+  const submitterFirstName = trimRequiredString(submitter?.firstName);
+  const submitterLastName = trimRequiredString(submitter?.lastName);
+  const submitterUnder13 = submitter?.under13;
+  const submitterAge = submitter?.age ?? null;
 
   if (
     !code ||
-    !fullName ||
-    fullName.length > MAX_FULL_NAME_LENGTH ||
+    !submitterFirstName ||
+    !submitterLastName ||
+    submitterFirstName.length > MAX_NAME_LENGTH ||
+    submitterLastName.length > MAX_NAME_LENGTH ||
+    typeof submitterUnder13 !== "boolean" ||
+    (submitterAge !== null &&
+      (typeof submitterAge !== "number" ||
+        !Number.isInteger(submitterAge) ||
+        submitterAge < 0 ||
+        submitterAge > 12)) ||
+    (submitterUnder13 && submitterAge === null) ||
+    (!submitterUnder13 && submitterAge !== null) ||
     typeof attending !== "boolean" ||
-    typeof guestCount !== "number" ||
-    !Number.isInteger(guestCount) ||
-    guestCount < 1 ||
-    guestCount > 10 ||
+    email === undefined ||
+    phoneNumber === undefined ||
+    (email !== null &&
+      (email.length > MAX_EMAIL_LENGTH || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) ||
+    (phoneNumber !== null && phoneNumber.length > MAX_PHONE_LENGTH) ||
+    !Array.isArray(guests) ||
+    guests.length + 1 > MAX_GUESTS ||
     dietaryRequirements === undefined ||
     notes === undefined ||
     (dietaryRequirements !== null && dietaryRequirements.length > MAX_OPTIONAL_TEXT_LENGTH) ||
     (notes !== null && notes.length > MAX_OPTIONAL_TEXT_LENGTH)
   ) {
     return withCors(invalidInput());
+  }
+
+  const normalizedGuests = [];
+
+  for (const guest of guests) {
+    const firstName = trimRequiredString(guest?.firstName);
+    const lastName = trimRequiredString(guest?.lastName);
+    const under13 = guest?.under13;
+    const age = guest?.age ?? null;
+
+    if (
+      !firstName ||
+      !lastName ||
+      firstName.length > MAX_NAME_LENGTH ||
+      lastName.length > MAX_NAME_LENGTH ||
+      typeof under13 !== "boolean" ||
+      (age !== null &&
+        (typeof age !== "number" || !Number.isInteger(age) || age < 0 || age > 12)) ||
+      (under13 && age === null) ||
+      (!under13 && age !== null)
+    ) {
+      return withCors(invalidInput());
+    }
+
+    normalizedGuests.push({ firstName, lastName, under13, age });
   }
 
   let supabaseAdmin;
@@ -120,9 +172,14 @@ Deno.serve(async (req) => {
 
   const { data, error } = await supabaseAdmin.rpc("submit_rsvp", {
     p_invite_code: code,
-    p_full_name: fullName,
+    p_submitter_first_name: submitterFirstName,
+    p_submitter_last_name: submitterLastName,
+    p_submitter_under_13: submitterUnder13,
+    p_submitter_age: submitterAge,
     p_attending: attending,
-    p_guest_count: guestCount,
+    p_email: email,
+    p_phone_number: phoneNumber,
+    p_guests: normalizedGuests,
     p_dietary_requirements: dietaryRequirements,
     p_notes: notes,
   });

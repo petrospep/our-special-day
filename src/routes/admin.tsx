@@ -51,6 +51,7 @@ import type {
   DisableInviteResponse,
   GenerateInviteResponse,
   InvitationCodeRow,
+  RsvpGuestRow,
   RsvpResponseRow,
 } from "@/lib/rsvp-types";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,10 @@ function formatDate(value: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function guestDisplayName(guest: RsvpGuestRow) {
+  return [guest.first_name, guest.last_name].filter(Boolean).join(" ");
 }
 
 function getBasePath() {
@@ -159,6 +164,7 @@ function AdminRoute() {
   const [notes, setNotes] = useState("");
   const [invites, setInvites] = useState<InvitationCodeRow[]>([]);
   const [responses, setResponses] = useState<RsvpResponseRow[]>([]);
+  const [rsvpGuests, setRsvpGuests] = useState<RsvpGuestRow[]>([]);
   const [songRequests, setSongRequests] = useState<Array<{ invite_code: string }>>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
@@ -184,6 +190,13 @@ function AdminRoute() {
       { attending: 0, declined: 0, guests: 0 },
     );
   }, [responses]);
+
+  const guestsByResponseId = useMemo(() => {
+    return rsvpGuests.reduce<Record<string, RsvpGuestRow[]>>((groups, guest) => {
+      groups[guest.rsvp_response_id] = [...(groups[guest.rsvp_response_id] ?? []), guest];
+      return groups;
+    }, {});
+  }, [rsvpGuests]);
 
   const selectedInvites = useMemo(() => {
     const selectedCodeSet = new Set(selectedCodes);
@@ -226,23 +239,30 @@ function AdminRoute() {
         setAdminState("denied");
         setInvites([]);
         setResponses([]);
+        setRsvpGuests([]);
         return;
       }
 
       const [
         { data: inviteRows, error: inviteError },
         { data: responseRows, error: responseError },
+        { data: guestRows, error: guestError },
         { data: songRows, error: songError },
       ] = await Promise.all([
         supabase.from("invitation_codes").select("*").order("created_at", { ascending: false }),
         supabase.from("rsvp_responses").select("*").order("submitted_at", { ascending: false }),
+        supabase
+          .from("rsvp_guests")
+          .select("*")
+          .order("is_submitter", { ascending: false })
+          .order("created_at", { ascending: true }),
         supabase.from("song_requests").select("invite_code"),
       ]);
 
       if (requestId !== loadRequest.current) return;
 
-      if (inviteError || responseError || songError) {
-        const error = inviteError ?? responseError ?? songError;
+      if (inviteError || responseError || guestError || songError) {
+        const error = inviteError ?? responseError ?? guestError ?? songError;
 
         if (isAccessError(error)) {
           setAdminState("denied");
@@ -257,6 +277,7 @@ function AdminRoute() {
 
       setInvites(inviteRows ?? []);
       setResponses(responseRows ?? []);
+      setRsvpGuests(guestRows ?? []);
       setSongRequests((songRows as Array<{ invite_code: string }> | null) ?? []);
       setAdminState("admin");
     } finally {
@@ -293,6 +314,7 @@ function AdminRoute() {
       loadRequest.current += 1;
       setInvites([]);
       setResponses([]);
+      setRsvpGuests([]);
       setSongRequests([]);
     }
   }, [loadAdminData, session]);
@@ -924,33 +946,58 @@ function AdminRoute() {
                     <TableHead>Code</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Guests</TableHead>
+                    <TableHead>Contact</TableHead>
                     <TableHead>Dietary</TableHead>
                     <TableHead>Notes</TableHead>
                     <TableHead>Submitted</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {responses.map((response) => (
-                    <TableRow key={response.id}>
-                      <TableCell className="font-medium">{response.full_name}</TableCell>
-                      <TableCell className="font-mono text-xs">{response.invite_code}</TableCell>
-                      <TableCell>
-                        <Badge variant={response.attending ? "outline" : "secondary"}>
-                          {response.attending ? "attending" : "declined"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{response.guest_count}</TableCell>
-                      <TableCell className="max-w-56 whitespace-normal">
-                        {response.dietary_requirements || "None"}
-                      </TableCell>
-                      <TableCell className="max-w-56 whitespace-normal">
-                        {response.notes || "None"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatDate(response.submitted_at)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {responses.map((response) => {
+                    const guests = guestsByResponseId[response.id] ?? [];
+
+                    return (
+                      <TableRow key={response.id}>
+                        <TableCell className="min-w-56">
+                          {guests.length === 0 ? (
+                            <span className="font-medium">{response.full_name}</span>
+                          ) : (
+                            <div className="space-y-2">
+                              {guests.map((guest) => (
+                                <div key={guest.id} className="flex flex-wrap items-center gap-2">
+                                  <span className="font-medium">{guestDisplayName(guest)}</span>
+                                  {guest.is_submitter && <Badge variant="outline">submitted</Badge>}
+                                  {guest.under_13 && (
+                                    <Badge variant="secondary">age {guest.age}</Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{response.invite_code}</TableCell>
+                        <TableCell>
+                          <Badge variant={response.attending ? "outline" : "secondary"}>
+                            {response.attending ? "attending" : "declined"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{response.guest_count}</TableCell>
+                        <TableCell className="max-w-56 whitespace-normal">
+                          {[response.email, response.phone_number].filter(Boolean).join(" / ") ||
+                            "None"}
+                        </TableCell>
+                        <TableCell className="max-w-56 whitespace-normal">
+                          {response.dietary_requirements || "None"}
+                        </TableCell>
+                        <TableCell className="max-w-56 whitespace-normal">
+                          {response.notes || "None"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatDate(response.submitted_at)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}

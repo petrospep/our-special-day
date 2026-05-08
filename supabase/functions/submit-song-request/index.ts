@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return withCors(invalidInput());
+    return withCors(invalidInput(), req);
   }
 
   let body: SubmitSongRequestBody;
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   try {
     body = await readJson<SubmitSongRequestBody>(req);
   } catch {
-    return withCors(invalidInput());
+    return withCors(invalidInput(), req);
   }
 
   const code = normalizeCode(body?.code);
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     songTitle.length > MAX_SONG_TITLE_LENGTH ||
     artist.length > MAX_ARTIST_LENGTH
   ) {
-    return withCors(invalidInput());
+    return withCors(invalidInput(), req);
   }
 
   let supabaseAdmin;
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error(error);
 
-    return withCors(json({ ok: false, error: "server_not_configured" }, 500));
+    return withCors(json({ ok: false, error: "server_not_configured" }, 500), req);
   }
 
   const { data: invitation, error: inviteError } = await supabaseAdmin
@@ -87,19 +87,19 @@ Deno.serve(async (req) => {
   if (inviteError) {
     console.error(inviteError);
 
-    return withCors(json({ ok: false, error: "invalid_input" }, 500));
+    return withCors(json({ ok: false, error: "invalid_input" }, 500), req);
   }
 
   if (!invitation) {
-    return withCors(json({ ok: false, error: "invalid_code" satisfies SubmitSongRequestError }));
+    return withCors(json({ ok: false, error: "invalid_code" satisfies SubmitSongRequestError }), req);
   }
 
   if (invitation.disabled) {
-    return withCors(json({ ok: false, error: "disabled_code" satisfies SubmitSongRequestError }));
+    return withCors(json({ ok: false, error: "disabled_code" satisfies SubmitSongRequestError }), req);
   }
 
   if (invitation.used) {
-    return withCors(json({ ok: false, error: "used_code" satisfies SubmitSongRequestError }));
+    return withCors(json({ ok: false, error: "used_code" satisfies SubmitSongRequestError }), req);
   }
 
   const { error } = await supabaseAdmin.from("song_requests").insert({
@@ -113,13 +113,14 @@ Deno.serve(async (req) => {
     if (error.message?.includes("song_request_limit_reached")) {
       return withCors(
         json({ ok: false, error: "song_request_limit_reached" satisfies SubmitSongRequestError }),
+        req,
       );
     }
 
     console.error(error);
 
-    return withCors(json({ ok: false, error: "invalid_input" }, 500));
+    return withCors(json({ ok: false, error: "invalid_input" }, 500), req);
   }
 
-  return withCors(json({ ok: true }));
+  return withCors(json({ ok: true }), req);
 });

@@ -58,12 +58,14 @@ export function handleCors(req: Request) {
   });
 }
 
-export function withCors(response: Response) {
+export function withCors(response: Response, req?: Request) {
   const headers = new Headers(response.headers);
 
   for (const [key, value] of Object.entries(corsHeaders)) {
     headers.set(key, value);
   }
+
+  headers.set("Access-Control-Allow-Origin", corsOrigin(req));
 
   return new Response(response.body, {
     status: response.status,
