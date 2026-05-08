@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.disable-invite]
 verify_jwt = false
+
+[functions.delete-invite]
+verify_jwt = false

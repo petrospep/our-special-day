@@ -11,13 +11,25 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  Trash2,
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +46,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction, getAccessToken } from "@/lib/functions";
 import type {
+  DeleteInviteResponse,
   DisableInviteResponse,
   GenerateInviteResponse,
   InvitationCodeRow,
@@ -139,6 +152,7 @@ function AdminRoute() {
   const [loggingIn, setLoggingIn] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [disablingCode, setDisablingCode] = useState<string | null>(null);
+  const [deletingCode, setDeletingCode] = useState<string | null>(null);
   const loadRequest = useRef(0);
 
   const totals = useMemo(() => {
@@ -341,6 +355,28 @@ function AdminRoute() {
     }
   }
 
+  async function onDeleteInvite(code: string) {
+    setDeletingCode(code);
+
+    try {
+      const token = await getAccessToken();
+      await callFunction<DeleteInviteResponse>("delete-invite", { code }, token);
+      toast.success("Invitation code deleted.");
+      await loadAdminData(session);
+    } catch (error) {
+      console.error(error);
+
+      if (error instanceof Error && error.message === "has_related_records") {
+        toast.error("This code has RSVP or music records. Disable it instead.");
+        return;
+      }
+
+      toast.error(error instanceof Error ? error.message : "Could not delete invite.");
+    } finally {
+      setDeletingCode(null);
+    }
+  }
+
   async function copyLink(code: string) {
     try {
       await copyInvitationUrl(code);
@@ -520,7 +556,7 @@ function AdminRoute() {
           <CardHeader>
             <CardTitle>Invitation codes</CardTitle>
             <CardDescription>
-              Copy invitation URLs, monitor limits, or disable a code.
+              Copy invitation URLs, monitor limits, disable, or delete unused codes.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -532,55 +568,109 @@ function AdminRoute() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead><TableHead>Status</TableHead><TableHead>Invitation URL</TableHead><TableHead>RSVPs</TableHead><TableHead>Music requests</TableHead><TableHead>Notes</TableHead><TableHead>Created</TableHead><TableHead>Actions</TableHead>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Invitation URL</TableHead>
+                    <TableHead>RSVPs</TableHead>
+                    <TableHead>Music requests</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                {invites.map((invite) => {
-                  const url = makeInvitationUrl(invite.code);
-                  const status = inviteStatus(invite);
-                  const rsvpCount = responses.filter((response) => response.invite_code === invite.code).length;
-                  const musicCount = songRequests.filter((request) => request.invite_code === invite.code).length;
+                  {invites.map((invite) => {
+                    const url = makeInvitationUrl(invite.code);
+                    const status = inviteStatus(invite);
+                    const rsvpCount = responses.filter(
+                      (response) => response.invite_code === invite.code,
+                    ).length;
+                    const musicCount = songRequests.filter(
+                      (request) => request.invite_code === invite.code,
+                    ).length;
 
-                  return (
-                    <TableRow key={invite.id}>
-                      <TableCell className="font-mono text-xs">{invite.code}</TableCell>
-                      <TableCell><StatusBadge status={status} /></TableCell>
-                      <TableCell className="max-w-80 break-all text-xs text-muted-foreground">{url}</TableCell>
-                      <TableCell>{rsvpCount} / 1</TableCell>
-                      <TableCell>{musicCount} / 3</TableCell>
-                      <TableCell className="max-w-56 whitespace-normal">{invite.notes || "—"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{formatDate(invite.created_at)}</TableCell>
-                      <TableCell>
-                        <div className="flex shrink-0 flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void copyLink(invite.code)}
-                          >
-                            <Copy />
-                            Copy
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            disabled={status === "disabled" || disablingCode === invite.code}
-                            onClick={() => void onDisableInvite(invite.code)}
-                          >
-                            {disablingCode === invite.code ? (
-                              <Loader2 className="animate-spin" />
-                            ) : (
-                              <XCircle />
-                            )}
-                            Disable
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                    return (
+                      <TableRow key={invite.id}>
+                        <TableCell className="font-mono text-xs">{invite.code}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={status} />
+                        </TableCell>
+                        <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
+                          {url}
+                        </TableCell>
+                        <TableCell>{rsvpCount} / 1</TableCell>
+                        <TableCell>{musicCount} / 3</TableCell>
+                        <TableCell className="max-w-56 whitespace-normal">
+                          {invite.notes || "—"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatDate(invite.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void copyLink(invite.code)}
+                            >
+                              <Copy />
+                              Copy
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              disabled={status === "disabled" || disablingCode === invite.code}
+                              onClick={() => void onDisableInvite(invite.code)}
+                            >
+                              {disablingCode === invite.code ? (
+                                <Loader2 className="animate-spin" />
+                              ) : (
+                                <XCircle />
+                              )}
+                              Disable
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={deletingCode === invite.code}
+                                >
+                                  {deletingCode === invite.code ? (
+                                    <Loader2 className="animate-spin" />
+                                  ) : (
+                                    <Trash2 />
+                                  )}
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete invitation code?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will permanently delete {invite.code}. Codes with RSVP or
+                                    music records cannot be deleted; disable them instead.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    className={buttonVariants({ variant: "destructive" })}
+                                    onClick={() => void onDeleteInvite(invite.code)}
+                                  >
+                                    Delete code
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}

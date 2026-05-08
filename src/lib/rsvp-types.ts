@@ -119,3 +119,21 @@ export type DisableInviteResponse =
       ok: false;
       error: "invalid_input" | "invite_disable_failed" | "not_found" | AdminFunctionError;
     };
+
+export type DeleteInviteRequest = {
+  code: string;
+};
+
+export type DeleteInviteResponse =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error:
+        | "invalid_input"
+        | "invite_delete_failed"
+        | "has_related_records"
+        | "not_found"
+        | AdminFunctionError;
+    };
