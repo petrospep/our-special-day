@@ -25,7 +25,8 @@ function Invitation() {
 
         <div className="sticky bottom-4 z-20 flex w-full max-w-3xl flex-col gap-3 border border-olive/20 bg-cream/90 p-3 shadow-lg shadow-olive/10 backdrop-blur-md sm:flex-row">
           <Link
-            to="/rsvp"
+            to="/"
+            hash="rsvp"
             search={homeSearch}
             className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-sm bg-olive px-5 py-3 text-sm uppercase tracking-[0.2em] text-cream transition hover:bg-olive/90"
           >

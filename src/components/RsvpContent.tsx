@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { AlertCircle, Check, Heart, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -565,6 +565,10 @@ function SuccessPanel({ attending }: { attending: "yes" | "no" | null }) {
 }
 
 function ErrorPanel({ onRetry }: { onRetry: () => void }) {
+  const search = useSearch({ strict: false });
+  const inviteCode = typeof search.code === "string" ? search.code.trim().toLowerCase() : undefined;
+  const homeSearch = inviteCode ? { code: inviteCode } : {};
+
   return (
     <div className="text-center py-8">
       <AlertCircle className="mx-auto h-8 w-8 text-coral" aria-hidden />
@@ -582,6 +586,7 @@ function ErrorPanel({ onRetry }: { onRetry: () => void }) {
         </button>
         <Link
           to="/"
+          search={homeSearch}
           className="inline-flex items-center justify-center border border-olive/40 px-8 py-3 text-sm tracking-[0.2em] uppercase text-olive hover:bg-olive/5 transition"
         >
           Home

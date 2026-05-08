@@ -9,16 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as RsvpRouteImport } from './routes/rsvp'
 import { Route as InvitationRouteImport } from './routes/invitation'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
-const RsvpRoute = RsvpRouteImport.update({
-  id: '/rsvp',
-  path: '/rsvp',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const InvitationRoute = InvitationRouteImport.update({
   id: '/invitation',
   path: '/invitation',
@@ -39,45 +33,34 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/invitation': typeof InvitationRoute
-  '/rsvp': typeof RsvpRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/invitation': typeof InvitationRoute
-  '/rsvp': typeof RsvpRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/invitation': typeof InvitationRoute
-  '/rsvp': typeof RsvpRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/invitation' | '/rsvp'
+  fullPaths: '/' | '/admin' | '/invitation'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/invitation' | '/rsvp'
-  id: '__root__' | '/' | '/admin' | '/invitation' | '/rsvp'
+  to: '/' | '/admin' | '/invitation'
+  id: '__root__' | '/' | '/admin' | '/invitation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   InvitationRoute: typeof InvitationRoute
-  RsvpRoute: typeof RsvpRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/rsvp': {
-      id: '/rsvp'
-      path: '/rsvp'
-      fullPath: '/rsvp'
-      preLoaderRoute: typeof RsvpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/invitation': {
       id: '/invitation'
       path: '/invitation'
@@ -106,7 +89,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   InvitationRoute: InvitationRoute,
-  RsvpRoute: RsvpRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

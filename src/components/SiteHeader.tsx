@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
@@ -13,11 +13,19 @@ const links = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const search = useSearch({ strict: false });
+  const inviteCode = typeof search.code === "string" ? search.code.trim().toLowerCase() : undefined;
+  const linkSearch = inviteCode ? { code: inviteCode } : {};
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-md bg-cream/80 border-b border-olive/15">
       <div className="mx-auto max-w-6xl px-6 py-4 flex items-center justify-between">
-        <Link to="/" hash="home" className="display-italic text-xl text-olive tracking-wide">
+        <Link
+          to="/"
+          hash="home"
+          search={linkSearch}
+          className="display-italic text-xl text-olive tracking-wide"
+        >
           P <span className="display-serif not-italic mx-1">&</span> N
         </Link>
         <nav className="hidden md:flex items-center gap-8">
@@ -25,6 +33,7 @@ export function SiteHeader() {
             <Link
               key={l.label}
               to={l.to}
+              search={linkSearch}
               hash={"hash" in l ? l.hash : undefined}
               className="text-sm text-foreground/80 hover:text-olive transition-colors"
             >
@@ -46,6 +55,7 @@ export function SiteHeader() {
             <Link
               key={l.label}
               to={l.to}
+              search={linkSearch}
               hash={"hash" in l ? l.hash : undefined}
               onClick={() => setOpen(false)}
               className="text-sm text-foreground/80"
