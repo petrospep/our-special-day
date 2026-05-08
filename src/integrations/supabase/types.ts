@@ -161,39 +161,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      rsvps: {
-        Row: {
-          attending: boolean;
-          created_at: string;
-          dietary_requirements: string | null;
-          email: string;
-          guest_name: string;
-          id: string;
-          message: string | null;
-          number_of_guests: number;
-        };
-        Insert: {
-          attending: boolean;
-          created_at?: string;
-          dietary_requirements?: string | null;
-          email: string;
-          guest_name: string;
-          id?: string;
-          message?: string | null;
-          number_of_guests?: number;
-        };
-        Update: {
-          attending?: boolean;
-          created_at?: string;
-          dietary_requirements?: string | null;
-          email?: string;
-          guest_name?: string;
-          id?: string;
-          message?: string | null;
-          number_of_guests?: number;
-        };
-        Relationships: [];
-      };
       song_requests: {
         Row: {
           artist: string;

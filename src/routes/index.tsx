@@ -59,20 +59,20 @@ function Hero() {
 /* ---------------- Events ---------------- */
 const events = [
   {
-    time: "5:30 PM",
-    title: "Ceremony",
-    venue: "Agios Dimitrios Church",
-    address: "Plaka, Athens",
-    dress: "Formal · Light colours encouraged",
-    note: "Doors open at 5:00 PM. Please arrive a little early so we can begin on time.",
+    time: "19:30",
+    title: "Wedding ceremony",
+    venue: "Saints Constantine and Helen Orthodox Cathedral of Glyfada",
+    address: "Glyfada, Athens, Greece",
+    dress: "Please arrive by 19:15.",
+    note: "You are cordially invited to join us as we begin our wedding celebration.",
   },
   {
-    time: "7:30 PM",
+    time: "Following the ceremony",
     title: "Reception",
-    venue: "Island Art & Taste",
-    address: "Limanakia, Vouliagmeni",
-    dress: "Cocktail attire · Comfortable shoes for dancing",
-    note: "Welcome drinks, dinner under the stars, and dancing until late.",
+    venue: "Efllena",
+    address: "Odos Amenon, Oikismos Galene, Koropi, 194 00",
+    dress: "Dinner and dancing to follow.",
+    note: "We look forward to celebrating with you after the ceremony.",
   },
 ];
 
@@ -87,7 +87,7 @@ function EventsSection() {
           Saturday, 25<sup className="text-3xl">th</sup> July
         </>
       }
-      subtitle="Two moments to share with the people we love most."
+      subtitle="You are cordially invited to the wedding of Petros & Nikki in Athens, Greece."
     >
       <div className="space-y-8 mt-8">
         {events.map((e) => (
@@ -107,7 +107,9 @@ function EventsSection() {
               </div>
               <div className="flex gap-3">
                 <Clock size={18} className="text-olive shrink-0 mt-1" />
-                <p className="text-sm">Begins at {e.time}</p>
+                <p className="text-sm">
+                  {e.title === "Wedding ceremony" ? `Begins at ${e.time}` : e.time}
+                </p>
               </div>
               <div className="flex gap-3 sm:col-span-2">
                 <Shirt size={18} className="text-olive shrink-0 mt-1" />
@@ -314,7 +316,7 @@ function GiftsSection() {
 const faqs = [
   {
     q: "When should I RSVP by?",
-    a: "Please respond by 1st June 2026 so we can finalise numbers with our venues.",
+    a: "Please RSVP by 15th June 2026 so we can finalise numbers with our venues.",
   },
   {
     q: "Can I bring a plus-one?",
@@ -326,7 +328,7 @@ const faqs = [
   },
   {
     q: "What time should I arrive?",
-    a: "The ceremony begins at 5:30 PM. Please arrive between 5:00 and 5:20 PM so we can start on time.",
+    a: "The wedding ceremony begins at 19:30. Please arrive by 19:15 so we can start on time.",
   },
   {
     q: "What is the dress code?",
@@ -334,11 +336,11 @@ const faqs = [
   },
   {
     q: "Where should I stay?",
-    a: "We recommend staying in central Athens (Plaka, Kolonaki) or near the southern coast in Vouliagmeni. We’ll share a list of partner hotels in your invitation.",
+    a: "We recommend staying in Athens or near the southern coast, with easy access to Glyfada and Koropi.",
   },
   {
     q: "Will there be transport between venues?",
-    a: "Yes — coaches will run from the church to the reception, and back to central Athens late in the evening.",
+    a: "The reception will follow the ceremony at Efllena, Odos Amenon, Oikismos Galene, Koropi, 194 00.",
   },
   {
     q: "Any dietary requirements?",

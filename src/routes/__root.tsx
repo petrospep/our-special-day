@@ -43,11 +43,14 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Save the date. Join Petros & Nikki for their wedding in Athens, Greece on 25 July 2026.",
+          "You are cordially invited to the wedding of Petros & Nikki in Athens, Greece on 25 July 2026.",
       },
       { name: "author", content: "Petros & Nikki" },
       { property: "og:title", content: "Petros & Nikki — 25 July 2026" },
-      { property: "og:description", content: "Save the date. Athens, Greece — 25 July 2026." },
+      {
+        property: "og:description",
+        content: "Wedding ceremony at 19:30 in Glyfada, followed by reception at Efllena.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },

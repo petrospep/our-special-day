@@ -253,7 +253,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
         theme="rsvp"
         eyebrow="Kindly Respond"
         title="RSVP"
-        subtitle="Enter your invitation code to respond by 1st June 2026."
+        subtitle="Enter your invitation code to respond by 15th June 2026."
       >
         <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12 max-w-2xl mx-auto mt-6">
           {status === "idle" && (
