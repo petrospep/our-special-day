@@ -1,4 +1,4 @@
-const CHARS = "abcdefghijkmnopqrstuvwxyz23456789";
+const CHARS = "abcdefghijkmnpqrstuvwxyz23456789";
 
 export function generateInviteCode(length = 10) {
   const bytes = crypto.getRandomValues(new Uint8Array(length));
