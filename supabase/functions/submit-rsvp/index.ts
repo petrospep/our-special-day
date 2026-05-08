@@ -7,6 +7,9 @@ const MAX_EMAIL_LENGTH = 254;
 const MAX_PHONE_LENGTH = 40;
 const MAX_OPTIONAL_TEXT_LENGTH = 1000;
 const MAX_GUESTS = 10;
+const EVENT_TITLE = "Petros & Nikki's wedding";
+const EVENT_DATE = "Saturday, 25 July 2026";
+const EVENT_LOCATION = "Athens, Greece";
 
 type GuestInput = {
   firstName?: unknown;
@@ -31,6 +34,27 @@ type SubmitRsvpError = "invalid_code" | "disabled_code" | "already_used" | "inva
 type SubmitRsvpResult = {
   ok?: unknown;
   error?: unknown;
+};
+
+type NormalizedGuest = {
+  firstName: string;
+  lastName: string;
+  under13: boolean;
+  age: number | null;
+};
+
+type RsvpEmailDetails = {
+  code: string;
+  submitterFirstName: string;
+  submitterLastName: string;
+  submitterUnder13: boolean;
+  submitterAge: number | null;
+  attending: boolean;
+  email: string | null;
+  phoneNumber: string | null;
+  guests: NormalizedGuest[];
+  dietaryRequirements: string | null;
+  notes: string | null;
 };
 
 function normalizeCode(value: unknown) {
@@ -70,6 +94,187 @@ function mapRpcError(error: unknown): SubmitRsvpError {
       return "already_used";
     default:
       return "invalid_input";
+  }
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function fullName(firstName: string, lastName: string) {
+  return `${firstName} ${lastName}`.trim();
+}
+
+function guestLabel(guest: NormalizedGuest) {
+  const name = fullName(guest.firstName, guest.lastName);
+
+  if (!guest.under13) {
+    return name;
+  }
+
+  return `${name} (under 13, age ${guest.age})`;
+}
+
+function textLine(label: string, value: string | null) {
+  return `${label}: ${value ?? "Not provided"}`;
+}
+
+function htmlRow(label: string, value: string | null) {
+  return `<p><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value ?? "Not provided")}</p>`;
+}
+
+function buildGuestConfirmation(details: RsvpEmailDetails) {
+  const submitterName = fullName(details.submitterFirstName, details.submitterLastName);
+  const attendingCopy = details.attending
+    ? "We have you marked as attending."
+    : "We have you marked as not attending.";
+  const guestNames = details.guests.length
+    ? details.guests.map(guestLabel).join(", ")
+    : "No additional guests";
+
+  return {
+    subject: `RSVP confirmation for ${EVENT_TITLE}`,
+    text: [
+      `Hi ${submitterName},`,
+      "",
+      `Thank you for sending your RSVP for ${EVENT_TITLE}.`,
+      attendingCopy,
+      "",
+      textLine("Event", EVENT_TITLE),
+      textLine("Date", EVENT_DATE),
+      textLine("Location", EVENT_LOCATION),
+      textLine("Additional guests", guestNames),
+      textLine("Dietary requirements", details.dietaryRequirements),
+      textLine("Notes", details.notes),
+      "",
+      "With love,",
+      "Petros & Nikki",
+    ].join("\n"),
+    html: [
+      `<p>Hi ${escapeHtml(submitterName)},</p>`,
+      `<p>Thank you for sending your RSVP for ${escapeHtml(EVENT_TITLE)}. ${escapeHtml(attendingCopy)}</p>`,
+      htmlRow("Event", EVENT_TITLE),
+      htmlRow("Date", EVENT_DATE),
+      htmlRow("Location", EVENT_LOCATION),
+      htmlRow("Additional guests", guestNames),
+      htmlRow("Dietary requirements", details.dietaryRequirements),
+      htmlRow("Notes", details.notes),
+      "<p>With love,<br>Petros &amp; Nikki</p>",
+    ].join(""),
+  };
+}
+
+function buildOwnerNotification(details: RsvpEmailDetails) {
+  const submitterName = fullName(details.submitterFirstName, details.submitterLastName);
+  const submitterAge = details.submitterUnder13 ? `under 13, age ${details.submitterAge}` : "adult";
+  const guestNames = details.guests.length
+    ? details.guests.map(guestLabel).join(", ")
+    : "No additional guests";
+  const attendance = details.attending ? "Attending" : "Not attending";
+
+  return {
+    subject: `New RSVP: ${submitterName} - ${attendance}`,
+    text: [
+      `New RSVP for ${EVENT_TITLE}`,
+      "",
+      textLine("Invitation code", details.code),
+      textLine("Submitter", `${submitterName} (${submitterAge})`),
+      textLine("Attendance", attendance),
+      textLine("Email", details.email),
+      textLine("Phone", details.phoneNumber),
+      textLine("Additional guests", guestNames),
+      textLine("Party size", String(details.guests.length + 1)),
+      textLine("Dietary requirements", details.dietaryRequirements),
+      textLine("Notes", details.notes),
+    ].join("\n"),
+    html: [
+      `<p>New RSVP for ${escapeHtml(EVENT_TITLE)}</p>`,
+      htmlRow("Invitation code", details.code),
+      htmlRow("Submitter", `${submitterName} (${submitterAge})`),
+      htmlRow("Attendance", attendance),
+      htmlRow("Email", details.email),
+      htmlRow("Phone", details.phoneNumber),
+      htmlRow("Additional guests", guestNames),
+      htmlRow("Party size", String(details.guests.length + 1)),
+      htmlRow("Dietary requirements", details.dietaryRequirements),
+      htmlRow("Notes", details.notes),
+    ].join(""),
+  };
+}
+
+async function sendEmail({
+  to,
+  subject,
+  text,
+  html,
+  replyTo,
+}: {
+  to: string;
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string;
+}) {
+  const apiKey = Deno.env.get("RESEND_API_KEY");
+  const from = Deno.env.get("RSVP_EMAIL_FROM");
+
+  if (!apiKey || !from) {
+    console.warn("RSVP email skipped: missing RESEND_API_KEY or RSVP_EMAIL_FROM.");
+    return;
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from,
+      to,
+      subject,
+      text,
+      html,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Resend email failed with status ${response.status}: ${await response.text()}`);
+  }
+}
+
+async function sendRsvpEmails(details: RsvpEmailDetails) {
+  const ownerEmail = Deno.env.get("RSVP_OWNER_EMAIL");
+  const messages: Array<Promise<void>> = [];
+
+  if (details.email) {
+    messages.push(sendEmail({ to: details.email, ...buildGuestConfirmation(details) }));
+  }
+
+  if (ownerEmail) {
+    messages.push(
+      sendEmail({
+        to: ownerEmail,
+        replyTo: details.email ?? undefined,
+        ...buildOwnerNotification(details),
+      }),
+    );
+  } else {
+    console.warn("RSVP owner email skipped: missing RSVP_OWNER_EMAIL.");
+  }
+
+  const results = await Promise.allSettled(messages);
+
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error(result.reason);
+    }
   }
 }
 
@@ -135,7 +340,7 @@ Deno.serve(async (req) => {
     return withCors(invalidInput());
   }
 
-  const normalizedGuests = [];
+  const normalizedGuests: NormalizedGuest[] = [];
 
   for (const guest of guests) {
     const firstName = trimRequiredString(guest?.firstName);
@@ -193,6 +398,20 @@ Deno.serve(async (req) => {
   const result = data as SubmitRsvpResult | null;
 
   if (result?.ok === true) {
+    await sendRsvpEmails({
+      code,
+      submitterFirstName,
+      submitterLastName,
+      submitterUnder13,
+      submitterAge,
+      attending,
+      email,
+      phoneNumber,
+      guests: normalizedGuests,
+      dietaryRequirements,
+      notes,
+    });
+
     return withCors(json({ ok: true }));
   }
 
