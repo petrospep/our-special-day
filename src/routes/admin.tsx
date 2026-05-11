@@ -550,10 +550,10 @@ function AdminRoute() {
     await onDeleteInvite(intent.codes[0], true);
   }
 
-  async function copyLink(code: string) {
+  async function copyLink(code: string, language: InvitationLanguage) {
     try {
-      await copyInvitationUrl(code);
-      toast.success("Invitation URL copied.");
+      await copyInvitationUrl(code, language);
+      toast.success(`${language === "el" ? "Greek" : "English"} invitation URL copied.`);
     } catch (error) {
       console.error(error);
       toast.error("Could not copy link.");
@@ -832,7 +832,7 @@ function AdminRoute() {
                           />
                         </TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Invitation URL</TableHead>
+                        <TableHead>Invitation URLs</TableHead>
                         <TableHead>RSVPs</TableHead>
                         <TableHead>Music requests</TableHead>
                         <TableHead>Notes</TableHead>
@@ -842,7 +842,8 @@ function AdminRoute() {
                     </TableHeader>
                     <TableBody>
                       {invites.map((invite) => {
-                        const url = makeInvitationUrl(invite.code);
+                        const greekUrl = makeInvitationUrl(invite.code, "el");
+                        const englishUrl = makeInvitationUrl(invite.code, "en");
                         const status = inviteStatus(invite);
                         const rsvpCount = responses.filter(
                           (response) => response.invite_code === invite.code,
@@ -867,8 +868,14 @@ function AdminRoute() {
                             <TableCell>
                               <StatusBadge status={status} />
                             </TableCell>
-                            <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
-                              {url}
+                            <TableCell className="max-w-80 space-y-1 break-all text-xs text-muted-foreground">
+                              <p>
+                                <span className="font-medium text-foreground">ΕΛ:</span> {greekUrl}
+                              </p>
+                              <p>
+                                <span className="font-medium text-foreground">EN:</span>{" "}
+                                {englishUrl}
+                              </p>
                             </TableCell>
                             <TableCell>{rsvpCount} / 1</TableCell>
                             <TableCell>{musicCount} / 3</TableCell>
@@ -884,10 +891,19 @@ function AdminRoute() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => void copyLink(invite.code)}
+                                  onClick={() => void copyLink(invite.code, "el")}
                                 >
                                   <Copy />
-                                  Copy
+                                  Copy ΕΛ
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => void copyLink(invite.code, "en")}
+                                >
+                                  <Copy />
+                                  Copy EN
                                 </Button>
                                 <Button
                                   type="button"
