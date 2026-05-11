@@ -10,6 +10,7 @@ const MAX_GUESTS = 10;
 const EVENT_TITLE = "Petros & Nikki's wedding";
 const EVENT_DATE = "Saturday, 25 July 2026";
 const EVENT_LOCATION = "Athens, Greece";
+const DEFAULT_RSVP_EMAIL_FROM = "Petros & Nikki <wedding@petrikki.gr>";
 
 type GuestInput = {
   firstName?: unknown;
@@ -221,10 +222,10 @@ async function sendEmail({
   replyTo?: string;
 }) {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const from = Deno.env.get("RSVP_EMAIL_FROM");
+  const from = Deno.env.get("RSVP_EMAIL_FROM") ?? DEFAULT_RSVP_EMAIL_FROM;
 
-  if (!apiKey || !from) {
-    console.warn("RSVP email skipped: missing RESEND_API_KEY or RSVP_EMAIL_FROM.");
+  if (!apiKey) {
+    console.warn("RSVP email skipped: missing RESEND_API_KEY.");
     return;
   }
 

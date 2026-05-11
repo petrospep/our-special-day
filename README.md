@@ -64,13 +64,13 @@ supabase secrets set SUPABASE_URL="https://<project-ref>.supabase.co"
 supabase secrets set SUPABASE_SECRET_KEY="<server-side-secret-key>"
 supabase secrets set SITE_URL="https://example.com"
 supabase secrets set RESEND_API_KEY="<resend-api-key>"
-supabase secrets set RSVP_EMAIL_FROM="Petros & Nikki <rsvp@example.com>"
+supabase secrets set RSVP_EMAIL_FROM="Petros & Nikki <wedding@petrikki.gr>"
 supabase secrets set RSVP_OWNER_EMAIL="<your-confirmation-email>"
 ```
 
 `SUPABASE_SECRET_KEY` can also be the Supabase service role key if that is the server-side key you use for this project. It is server-side only and must never be added to `VITE_` variables, committed to Git, or exposed in browser code.
 
-`submit-rsvp` sends RSVP email through Resend after the RSVP is stored. Guests receive a confirmation only when they provide an email address, and `RSVP_OWNER_EMAIL` receives every RSVP notification. Mail delivery failures are logged by the Edge Function and do not roll back the saved RSVP.
+`submit-rsvp` sends RSVP email through Resend after the RSVP is stored. Guests receive a confirmation only when they provide an email address, and `RSVP_OWNER_EMAIL` receives every RSVP notification. If `RSVP_EMAIL_FROM` is not set, the function sends from `Petros & Nikki <wedding@petrikki.gr>`. Mail delivery failures are logged by the Edge Function and do not roll back the saved RSVP.
 
 ## Database Migrations
 
