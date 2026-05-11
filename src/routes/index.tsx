@@ -79,8 +79,8 @@ const events = [
       el: "Ιερός Καθεδρικός Ναός Αγίων Κωνσταντίνου και Ελένης Γλυφάδας",
     },
     address: {
-      en: "Glyfada, Athens, Greece",
-      el: "Γλυφάδα, Αθήνα, Ελλάδα",
+      en: "Glyfada, Athens",
+      el: "Γλυφάδα, Αθήνα",
     },
     mapsUrl:
       "https://www.google.com/maps/search/?api=1&query=Saints%20Constantine%20and%20Helen%20Orthodox%20Cathedral%20of%20Glyfada%2C%20Glyfada%2C%20Athens%2C%20Greece",
@@ -103,8 +103,14 @@ const events = [
       en: "Reception",
       el: "Δεξίωση",
     },
-    venue: "Efilena Estate",
-    address: "Odos Amenon, Oikismos Galene, Koropi, 194 00",
+    venue: {
+      en: "Efilena Estate",
+      el: "Κτήμα Εφηλένα",
+    },
+    address: {
+      en: "Odos Amenon, Oikismos Galene, Koropi, 194 00",
+      el: "Οδός Ανέμων, Οικισμός Γαλήνη, 194 00",
+    },
     mapsUrl: "https://maps.app.goo.gl/sEp6daE3wwtVTC3N6",
     dress: {
       en: "Dinner and dancing to follow.",
