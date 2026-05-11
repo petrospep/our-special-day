@@ -3,10 +3,10 @@ import type { Session } from "@supabase/supabase-js";
 import {
   AlertCircle,
   CheckCircle2,
+  Chrome,
   Copy,
   Loader2,
   LogOut,
-  Mail,
   Plus,
   RefreshCw,
   ShieldAlert,
@@ -42,7 +42,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction, getAccessToken } from "@/lib/functions";
@@ -57,7 +56,6 @@ import type {
 import { cn } from "@/lib/utils";
 
 type AdminState = "checking" | "logged_out" | "denied" | "admin";
-type LoginMode = "magic" | "password";
 type InviteStatus = "unused" | "used" | "disabled";
 type BulkAction = "disable" | "delete";
 
@@ -158,9 +156,6 @@ function StatusBadge({ status }: { status: InviteStatus }) {
 function AdminRoute() {
   const [session, setSession] = useState<Session | null>(null);
   const [adminState, setAdminState] = useState<AdminState>("checking");
-  const [loginMode, setLoginMode] = useState<LoginMode>("magic");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [notes, setNotes] = useState("");
   const [invites, setInvites] = useState<InvitationCodeRow[]>([]);
   const [responses, setResponses] = useState<RsvpResponseRow[]>([]);
@@ -338,35 +333,21 @@ function AdminRoute() {
     setSelectedCodes(checked ? invites.map((invite) => invite.code) : []);
   }
 
-  async function onLogin(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function onGoogleLogin() {
     setLoggingIn(true);
 
     try {
-      if (loginMode === "magic") {
-        const { error } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            emailRedirectTo: makeAdminUrl(),
-          },
-        });
-
-        if (error) throw error;
-        toast.success("Magic link sent.");
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: makeAdminUrl(),
+        },
       });
 
       if (error) throw error;
-      toast.success("Signed in.");
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Could not sign in.");
-    } finally {
+      toast.error(error instanceof Error ? error.message : "Could not start Google sign in.");
       setLoggingIn(false);
     }
   }
@@ -540,51 +521,10 @@ function AdminRoute() {
               <CardDescription>Use a wedding admin account to manage invitations.</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={loginMode} onValueChange={(value) => setLoginMode(value as LoginMode)}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="magic">Magic link</TabsTrigger>
-                  <TabsTrigger value="password">Password</TabsTrigger>
-                </TabsList>
-                <form onSubmit={onLogin} className="mt-5 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-email">Email</Label>
-                    <Input
-                      id="admin-email"
-                      type="email"
-                      autoComplete="email"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      required
-                    />
-                  </div>
-                  <TabsContent value="password" className="mt-0">
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-password">Password</Label>
-                      <Input
-                        id="admin-password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required={loginMode === "password"}
-                      />
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="magic" className="mt-0">
-                    <Alert>
-                      <Mail className="size-4" />
-                      <AlertTitle>Email sign in</AlertTitle>
-                      <AlertDescription>
-                        A one-time link will be sent to the admin email address.
-                      </AlertDescription>
-                    </Alert>
-                  </TabsContent>
-                  <Button type="submit" className="w-full" disabled={loggingIn}>
-                    {loggingIn ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
-                    {loginMode === "magic" ? "Send magic link" : "Sign in"}
-                  </Button>
-                </form>
-              </Tabs>
+              <Button type="button" className="w-full" disabled={loggingIn} onClick={onGoogleLogin}>
+                {loggingIn ? <Loader2 className="animate-spin" /> : <Chrome />}
+                Sign in with Google
+              </Button>
             </CardContent>
           </Card>
         </div>

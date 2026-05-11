@@ -131,7 +131,7 @@ function AuthRedirectHandler() {
 
       if (error) {
         console.error(error);
-        toast.error("Could not finish signing in. Please request a new magic link.");
+        toast.error("Could not finish signing in. Please try again.");
         window.history.replaceState(null, document.title, window.location.pathname);
         return;
       }
