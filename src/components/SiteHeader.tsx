@@ -9,7 +9,7 @@ const links = [
   { to: "/", hash: "rsvp", label: "RSVP" },
   { to: "/", hash: "music", label: { en: "Music", el: "Μουσική" } },
   { to: "/", hash: "gifts", label: { en: "Gifts", el: "Δώρα" } },
-  { to: "/", hash: "faq", label: "FAQ" },
+  { to: "/", hash: "faq", label: { en: "FAQ", el: "Συχνές Ερωτήσεις" } },
 ] as const;
 
 export function SiteHeader() {
