@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "../_shared/admin.ts";
 import { handleCors, withCors } from "../_shared/cors.ts";
 import { json, readJson } from "../_shared/json.ts";
+import { isValidInviteCode } from "../_shared/invite-code-word-pool.ts";
 
 type GiftRegion = "uk" | "greece";
 
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
   const code = normalizeCode(body?.code);
   const region = normalizeRegion(body?.region);
 
-  if (!/^w-[a-z0-9]{8,16}$/.test(code) || !region) {
+  if (!isValidInviteCode(code) || !region) {
     return withCors(invalidInput(), req);
   }
 

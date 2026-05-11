@@ -41,7 +41,8 @@ const invalidCopy: Record<InvalidReason, { title: string; message: string; actio
   },
   invalid_format: {
     title: "That code does not look right",
-    message: "Invitation codes start with w- followed by the letters and numbers on your invite.",
+    message:
+      "Invitation codes use lowercase words followed by the letters and numbers on your invite.",
     action: "Try another code",
   },
   not_found: {
@@ -465,7 +466,7 @@ function CodePanel({
   manualCode: string;
   codeError: string | null;
   title: string;
-  message: string;
+  message?: string;
   action: string;
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -474,7 +475,7 @@ function CodePanel({
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div className="text-center">
         <p className="display-serif text-3xl text-olive">{title}</p>
-        <p className="mt-3 text-foreground/75">{message}</p>
+        {message ? <p className="mt-3 text-foreground/75">{message}</p> : null}
       </div>
 
       <label className="block">
@@ -487,7 +488,7 @@ function CodePanel({
           aria-describedby={codeError ? "code-error" : undefined}
           autoComplete="off"
           className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-          placeholder="w-xxxxxxxx"
+          placeholder="bon-bon-baby-xxxxxxxxxx"
         />
       </label>
       {codeError && (
@@ -546,7 +547,6 @@ function InvalidPanel({
         onChange={onChange}
         onSubmit={onSubmit}
         title="Try your code again"
-        message="Codes can be easy to mistype, especially the letters and numbers after w-."
         action={copy.action}
       />
     </div>

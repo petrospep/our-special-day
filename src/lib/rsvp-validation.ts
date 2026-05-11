@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isValidInviteCode } from "../../supabase/functions/_shared/invite-code-word-pool";
+
 export const inviteCodeSchema = z
   .string({
     required_error: "Enter your invitation code.",
@@ -7,7 +9,7 @@ export const inviteCodeSchema = z
   })
   .trim()
   .toLowerCase()
-  .regex(/^w-[a-z0-9]{8,16}$/, "Enter a valid invitation code.");
+  .refine(isValidInviteCode, "Enter a valid invitation code.");
 
 const optionalTextSchema = (maxLength: number, message: string) =>
   z.preprocess(

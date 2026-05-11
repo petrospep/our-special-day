@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../components/ui/accordion";
-import { MapPin, Clock, Shirt, Music, Heart, Eye, LockKeyhole, Copy, Check } from "lucide-react";
+import { MapPin, Clock, Wine, Music, Heart, Eye, LockKeyhole, Copy, Check } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
@@ -136,7 +136,11 @@ function EventsSection() {
                 </p>
               </div>
               <div className="flex gap-3 sm:col-span-2">
-                <Shirt size={18} className="text-olive shrink-0 mt-1" />
+                {e.title === "Wedding ceremony" ? (
+                  <Clock size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
+                ) : (
+                  <Wine size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
+                )}
                 <p className="text-sm">{e.dress}</p>
               </div>
             </div>
