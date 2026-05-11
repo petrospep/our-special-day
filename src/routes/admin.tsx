@@ -58,6 +58,7 @@ import { cn } from "@/lib/utils";
 type AdminState = "checking" | "logged_out" | "denied" | "admin";
 type InviteStatus = "unused" | "used" | "disabled";
 type BulkAction = "disable" | "delete";
+type UsedDeleteIntent = { codes: string[]; bulk: boolean };
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -172,6 +173,7 @@ function AdminRoute() {
   const [deletingCode, setDeletingCode] = useState<string | null>(null);
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
+  const [usedDeleteIntent, setUsedDeleteIntent] = useState<UsedDeleteIntent | null>(null);
   const loadRequest = useRef(0);
 
   const totals = useMemo(() => {
@@ -209,6 +211,10 @@ function AdminRoute() {
 
   const selectedActiveInvites = useMemo(() => {
     return selectedInvites.filter((invite) => !invite.disabled);
+  }, [selectedInvites]);
+
+  const selectedUsedInvites = useMemo(() => {
+    return selectedInvites.filter((invite) => invite.used);
   }, [selectedInvites]);
 
   const allInvitesSelected =
@@ -413,19 +419,19 @@ function AdminRoute() {
     }
   }
 
-  async function onDeleteInvite(code: string) {
+  async function onDeleteInvite(code: string, deleteUsed = false) {
     setDeletingCode(code);
 
     try {
       const token = await getAccessToken();
-      await callFunction<DeleteInviteResponse>("delete-invite", { code }, token);
+      await callFunction<DeleteInviteResponse>("delete-invite", { code, deleteUsed }, token);
       toast.success("Invitation code deleted.");
       await loadAdminData(session);
     } catch (error) {
       console.error(error);
 
-      if (error instanceof Error && error.message === "has_related_records") {
-        toast.error("This code has RSVP or music records. Disable it instead.");
+      if (error instanceof Error && error.message === "used_code_confirmation_required") {
+        toast.error("Deleting a used code requires the extra confirmation.");
         return;
       }
 
@@ -463,39 +469,33 @@ function AdminRoute() {
     }
   }
 
-  async function onBulkDeleteInvites() {
-    if (selectedInvites.length === 0) return;
+  async function onBulkDeleteInvites(invitesToDelete = selectedInvites, deleteUsed = false) {
+    if (invitesToDelete.length === 0) return;
 
     setBulkAction("delete");
 
     let deletedCount = 0;
-    let blockedCount = 0;
     let failedCount = 0;
 
     try {
       const token = await getAccessToken();
 
-      for (const invite of selectedInvites) {
+      for (const invite of invitesToDelete) {
         try {
-          await callFunction<DeleteInviteResponse>("delete-invite", { code: invite.code }, token);
+          await callFunction<DeleteInviteResponse>(
+            "delete-invite",
+            { code: invite.code, deleteUsed },
+            token,
+          );
           deletedCount += 1;
         } catch (error) {
           console.error(error);
-
-          if (error instanceof Error && error.message === "has_related_records") {
-            blockedCount += 1;
-          } else {
-            failedCount += 1;
-          }
+          failedCount += 1;
         }
       }
 
       if (deletedCount > 0) {
         toast.success(`${deletedCount} invitation code(s) deleted.`);
-      }
-
-      if (blockedCount > 0) {
-        toast.error(`${blockedCount} code(s) have RSVP or music records. Disable them instead.`);
       }
 
       if (failedCount > 0) {
@@ -509,6 +509,40 @@ function AdminRoute() {
     }
   }
 
+  function requestSingleDelete(invite: InvitationCodeRow) {
+    if (invite.used) {
+      setUsedDeleteIntent({ codes: [invite.code], bulk: false });
+      return;
+    }
+
+    void onDeleteInvite(invite.code);
+  }
+
+  function requestBulkDelete() {
+    if (selectedUsedInvites.length > 0) {
+      setUsedDeleteIntent({ codes: selectedInvites.map((invite) => invite.code), bulk: true });
+      return;
+    }
+
+    void onBulkDeleteInvites();
+  }
+
+  async function onConfirmUsedDelete() {
+    if (!usedDeleteIntent) return;
+
+    const intent = usedDeleteIntent;
+    setUsedDeleteIntent(null);
+
+    if (intent.bulk) {
+      const codeSet = new Set(intent.codes);
+      const invitesToDelete = invites.filter((invite) => codeSet.has(invite.code));
+      await onBulkDeleteInvites(invitesToDelete, true);
+      return;
+    }
+
+    await onDeleteInvite(intent.codes[0], true);
+  }
+
   async function copyLink(code: string) {
     try {
       await copyInvitationUrl(code);
@@ -518,6 +552,11 @@ function AdminRoute() {
       toast.error("Could not copy link.");
     }
   }
+
+  const pendingUsedDeleteCount = usedDeleteIntent
+    ? invites.filter((invite) => usedDeleteIntent.codes.includes(invite.code) && invite.used).length
+    : 0;
+  const pendingDeleteCount = usedDeleteIntent?.codes.length ?? 0;
 
   if (adminState === "logged_out") {
     return (
@@ -726,17 +765,18 @@ function AdminRoute() {
                             <AlertDialogTitle>Delete selected codes?</AlertDialogTitle>
                             <AlertDialogDescription>
                               This will permanently delete {selectedCodes.length} selected code(s).
-                              Codes with RSVP or music records cannot be deleted; disable them
-                              instead.
+                              {selectedUsedInvites.length > 0
+                                ? ` This selection includes ${selectedUsedInvites.length} used code(s). Used code deletion also removes their RSVP responses, RSVP guests, and music requests.`
+                                : ""}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               className={buttonVariants({ variant: "destructive" })}
-                              onClick={() => void onBulkDeleteInvites()}
+                              onClick={requestBulkDelete}
                             >
-                              Delete codes
+                              {selectedUsedInvites.length > 0 ? "Continue" : "Delete codes"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -856,17 +896,19 @@ function AdminRoute() {
                                     <AlertDialogHeader>
                                       <AlertDialogTitle>Delete invitation code?</AlertDialogTitle>
                                       <AlertDialogDescription>
-                                        This will permanently delete {invite.code}. Codes with RSVP
-                                        or music records cannot be deleted; disable them instead.
+                                        This will permanently delete {invite.code}.
+                                        {invite.used
+                                          ? " This code is used, so deletion also removes its RSVP response, RSVP guests, and music requests."
+                                          : ""}
                                       </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                                       <AlertDialogAction
                                         className={buttonVariants({ variant: "destructive" })}
-                                        onClick={() => void onDeleteInvite(invite.code)}
+                                        onClick={() => requestSingleDelete(invite)}
                                       >
-                                        Delete code
+                                        {invite.used ? "Continue" : "Delete code"}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>
@@ -883,6 +925,38 @@ function AdminRoute() {
             )}
           </CardContent>
         </Card>
+
+        <AlertDialog
+          open={usedDeleteIntent !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setUsedDeleteIntent(null);
+            }
+          }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete used invitation data?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Final confirmation: this deletes {pendingDeleteCount} invitation code(s), including{" "}
+                {pendingUsedDeleteCount} used code(s). Used code deletion permanently removes the
+                matching RSVP responses, RSVP guests, and music requests.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className={buttonVariants({ variant: "destructive" })}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void onConfirmUsedDelete();
+                }}
+              >
+                Delete used data
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <Card className="rounded-lg">
           <CardHeader>

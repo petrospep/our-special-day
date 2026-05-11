@@ -250,6 +250,7 @@ export type DisableInviteResponse =
 
 export type DeleteInviteRequest = {
   code: string;
+  deleteUsed?: boolean;
 };
 
 export type DeleteInviteResponse =
@@ -262,6 +263,7 @@ export type DeleteInviteResponse =
         | "invalid_input"
         | "invite_delete_failed"
         | "has_related_records"
+        | "used_code_confirmation_required"
         | "not_found"
         | AdminFunctionError;
     };
