@@ -495,35 +495,44 @@ function GiftsSection() {
 const faqs = [
   {
     q: "When should I RSVP by?",
-    a: "Please RSVP by 15th June 2026 so we can finalise numbers with our venues.",
+    a: ["Please RSVP by 15th June 2026 so we can finalise numbers with our venues."],
   },
   {
     q: "Can I bring a plus-one?",
-    a: "Your invitation will indicate the number of seats reserved for you. If you have any questions, just send us a message in the RSVP form.",
+    a: [
+      "Of course! Please add their details and RSVP on their behalf using the “Add guests” button.",
+      "The same applies for families: please RSVP for your whole group in this way.",
+    ],
   },
   {
     q: "Are children welcome?",
-    a: "We adore little ones, but our reception is an adults-only celebration. Children are very welcome at the ceremony.",
+    a: [
+      "Of course! Please include each child’s age in the RSVP section, as this will help the venue accommodate your needs.",
+    ],
   },
   {
     q: "What time should I arrive?",
-    a: "The wedding ceremony begins at 19:30. Please arrive by 19:15 so we can start on time.",
+    a: ["Please arrive at the church at 19:15, as the ceremony will begin at 19:30."],
   },
   {
     q: "What is the dress code?",
-    a: "Formal attire with light, summery colours for the ceremony. Cocktail attire for the reception — and bring shoes you can dance in.",
+    a: [
+      "There is no dress code. Wear whatever you like :) It will be hot, so please keep this in mind.",
+    ],
   },
   {
     q: "Where should I stay?",
-    a: "We recommend staying in Athens or near the southern coast, with easy access to Glyfada and Koropi.",
+    a: [
+      "For guests who want to get around by car, or stay somewhere by the sea, the coastline south of Glyfada is beautiful.",
+      "Some guests may prefer to stay in central Athens to make the most of sightseeing and experience the hustle and bustle of the city. From there, getting around by public transport and taxi is very feasible. Glyfada is connected to the centre by tram and is also very accessible by taxi.",
+    ],
   },
   {
-    q: "Will there be transport between venues?",
-    a: "The reception will follow the ceremony at Efllena, Odos Amenon, Oikismos Galene, Koropi, 194 00.",
-  },
-  {
-    q: "Any dietary requirements?",
-    a: "Let us know in your RSVP. We’ll happily accommodate vegetarian, vegan, gluten-free, and allergy needs.",
+    q: "How do I get between the venues?",
+    a: [
+      "By car or taxi. The reception venue is around a 20-minute drive from the church.",
+      "Many guests will be bringing cars. If you do not have a car or a guaranteed ride, please let either Petro or Nikki know directly and we can find a solution based on numbers :)",
+    ],
   },
 ];
 
@@ -546,8 +555,10 @@ function FaqSection() {
             <AccordionTrigger className="text-left display-serif text-xl text-olive hover:no-underline py-5">
               {f.q}
             </AccordionTrigger>
-            <AccordionContent className="text-foreground/75 leading-relaxed pb-5">
-              {f.a}
+            <AccordionContent className="space-y-3 text-foreground/75 leading-relaxed pb-5">
+              {f.a.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </AccordionContent>
           </AccordionItem>
         ))}
