@@ -101,8 +101,8 @@ const events = [
       el: "Καλό είναι να είστε εκεί έως τις 19:15.",
     },
     note: {
-      en: "You are cordially invited to join us as we begin our wedding celebration.",
-      el: "Θα χαρούμε πολύ να είστε μαζί μας στο ξεκίνημα της γιορτής μας.",
+      en: "Please join us at the Church for the Holy Sacrament.",
+      el: "Παρακαλούμε να παρευρεθείτε στην Εκκλησία για το Ιερό Μυστήριο.",
     },
     ceremony: true,
   },
@@ -120,17 +120,17 @@ const events = [
       el: "Κτήμα Εφηλένα",
     },
     address: {
-      en: "Odos Amenon, Oikismos Galene, Koropi, 194 00",
+      en: "Odos Anemon, Oikismos Galini, Koropi, 194 00",
       el: "Οδός Ανέμων, Οικισμός Γαλήνη, 194 00",
     },
     mapsUrl: "https://maps.app.goo.gl/sEp6daE3wwtVTC3N6",
     dress: {
-      en: "Dinner and dancing to follow.",
-      el: "Θα ακολουθήσουν δείπνο και χορός.",
+      en: "Drinks, dinner and dancing to the wee hours :)",
+      el: "Γλέντι μέχρι το πρωί :)",
     },
     note: {
-      en: "We look forward to celebrating with you after the ceremony.",
-      el: "Ανυπομονούμε να γιορτάσουμε μαζί σας μετά την τελετή.",
+      en: "We look forward to celebrating with you after the ceremony!",
+      el: "Ανυπομονούμε να γιορτάσουμε μαζί σας μετά την τελετή!",
     },
     ceremony: false,
   },
@@ -774,8 +774,8 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
         <Heart size={28} className="mx-auto text-coral" strokeWidth={1.5} />
         <p className="display-italic text-2xl md:text-3xl text-olive mt-6 leading-relaxed">
           {language === "en"
-            ? "If you wish to honour us with a gift, a contribution towards our future honeymoon would mean a lot"
-            : "Αν θέλετε να μας κάνετε ένα δώρο, μια συνεισφορά για το ταξίδι του μέλιτος θα σήμαινε πολλά για εμάς"}
+            ? "If you wish to honour us with a gift, a contribution towards our future honeymoon would mean a lot :)"
+            : "Αν θέλετε να μας κάνετε ένα δώρο, μια συνεισφορά για το ταξίδι του μέλιτος θα σήμαινε πολλά για εμάς :)"}
         </p>
         <form onSubmit={onReveal} className="mt-12 space-y-6" noValidate>
           <div
