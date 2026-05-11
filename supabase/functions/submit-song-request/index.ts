@@ -16,7 +16,6 @@ type SubmitSongRequestBody = {
 type SubmitSongRequestError =
   | "invalid_code"
   | "disabled_code"
-  | "used_code"
   | "song_request_limit_reached"
   | "invalid_input";
 
@@ -80,7 +79,7 @@ Deno.serve(async (req) => {
 
   const { data: invitation, error: inviteError } = await supabaseAdmin
     .from("invitation_codes")
-    .select("code, used, disabled")
+    .select("code, disabled")
     .eq("code", code)
     .maybeSingle();
 
@@ -91,15 +90,17 @@ Deno.serve(async (req) => {
   }
 
   if (!invitation) {
-    return withCors(json({ ok: false, error: "invalid_code" satisfies SubmitSongRequestError }), req);
+    return withCors(
+      json({ ok: false, error: "invalid_code" satisfies SubmitSongRequestError }),
+      req,
+    );
   }
 
   if (invitation.disabled) {
-    return withCors(json({ ok: false, error: "disabled_code" satisfies SubmitSongRequestError }), req);
-  }
-
-  if (invitation.used) {
-    return withCors(json({ ok: false, error: "used_code" satisfies SubmitSongRequestError }), req);
+    return withCors(
+      json({ ok: false, error: "disabled_code" satisfies SubmitSongRequestError }),
+      req,
+    );
   }
 
   const { error } = await supabaseAdmin.from("song_requests").insert({
@@ -122,5 +123,27 @@ Deno.serve(async (req) => {
     return withCors(json({ ok: false, error: "invalid_input" }, 500), req);
   }
 
-  return withCors(json({ ok: true }), req);
+  const { count, error: songCountError } = await supabaseAdmin
+    .from("song_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("invite_code", code);
+
+  if (songCountError) {
+    console.error(songCountError);
+
+    return withCors(json({ ok: true }), req);
+  }
+
+  const submitted = count ?? 0;
+  const limit = 3;
+
+  return withCors(
+    json({
+      ok: true,
+      songRequestsSubmitted: submitted,
+      songRequestsLeft: Math.max(limit - submitted, 0),
+      songRequestLimit: limit,
+    }),
+    req,
+  );
 });

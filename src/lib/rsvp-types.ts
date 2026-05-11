@@ -63,12 +63,17 @@ export type InviteCodeStatus = "valid" | "missing_code" | "not_found" | "used" |
 
 export type ValidateInviteRequest = {
   code: string;
+  includeSongRequestUsage?: boolean;
+  allowUsedForSongRequests?: boolean;
 };
 
 export type ValidateInviteResponse =
   | {
       ok: true;
       valid: true;
+      songRequestsSubmitted?: number;
+      songRequestsLeft?: number;
+      songRequestLimit?: number;
     }
   | {
       ok: true;
@@ -77,7 +82,7 @@ export type ValidateInviteResponse =
     }
   | {
       ok: false;
-      error: "server_not_configured" | "invite_lookup_failed";
+      error: "server_not_configured" | "invite_lookup_failed" | "song_request_lookup_failed";
     };
 
 export type SubmitRsvpRequest = {
@@ -123,13 +128,15 @@ export type SubmitSongRequestRequest = {
 export type SubmitSongRequestResponse =
   | {
       ok: true;
+      songRequestsSubmitted?: number;
+      songRequestsLeft?: number;
+      songRequestLimit?: number;
     }
   | {
       ok: false;
       error:
         | "invalid_code"
         | "disabled_code"
-        | "used_code"
         | "song_request_limit_reached"
         | "invalid_input"
         | "server_not_configured";

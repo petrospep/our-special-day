@@ -4,6 +4,8 @@ import { json, readJson } from "../_shared/json.ts";
 
 type ValidateInviteBody = {
   code?: unknown;
+  includeSongRequestUsage?: unknown;
+  allowUsedForSongRequests?: unknown;
 };
 
 function normalizeCode(value: unknown) {
@@ -34,6 +36,8 @@ Deno.serve(async (req) => {
   }
 
   const code = normalizeCode(body?.code);
+  const includeSongRequestUsage = body?.includeSongRequestUsage === true;
+  const allowUsedForSongRequests = body?.allowUsedForSongRequests === true;
 
   if (!code) {
     return withCors(invalid("missing_code"));
@@ -69,9 +73,35 @@ Deno.serve(async (req) => {
     return withCors(invalid("disabled"));
   }
 
-  if (data.used) {
+  if (data.used && !allowUsedForSongRequests) {
     return withCors(invalid("used"));
   }
 
-  return withCors(json({ ok: true, valid: true }));
+  if (!includeSongRequestUsage) {
+    return withCors(json({ ok: true, valid: true }));
+  }
+
+  const { count, error: songCountError } = await supabaseAdmin
+    .from("song_requests")
+    .select("id", { count: "exact", head: true })
+    .eq("invite_code", code);
+
+  if (songCountError) {
+    console.error(songCountError);
+
+    return withCors(json({ ok: false, error: "song_request_lookup_failed" }, 500));
+  }
+
+  const submitted = count ?? 0;
+  const limit = 3;
+
+  return withCors(
+    json({
+      ok: true,
+      valid: true,
+      songRequestsSubmitted: submitted,
+      songRequestsLeft: Math.max(limit - submitted, 0),
+      songRequestLimit: limit,
+    }),
+  );
 });

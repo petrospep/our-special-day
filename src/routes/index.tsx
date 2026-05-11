@@ -133,11 +133,46 @@ const songSchema = z.object({
   artist: z.string().trim().min(1, "Artist is required").max(150),
 });
 
+const MUSIC_REQUEST_LIMIT = 3;
+
+type MusicRequestUsage = {
+  submitted: number;
+  left: number;
+  limit: number;
+};
+
+function normalizeMusicUsage(response: {
+  songRequestsSubmitted?: number;
+  songRequestsLeft?: number;
+  songRequestLimit?: number;
+}): MusicRequestUsage {
+  const limit = response.songRequestLimit ?? MUSIC_REQUEST_LIMIT;
+  const submitted = response.songRequestsSubmitted ?? 0;
+
+  return {
+    submitted,
+    left: response.songRequestsLeft ?? Math.max(limit - submitted, 0),
+    limit,
+  };
+}
+
+function musicUsageMessage(usage: MusicRequestUsage) {
+  const requestLabel = usage.submitted === 1 ? "request" : "requests";
+  const leftLabel = usage.left === 1 ? "request" : "requests";
+
+  return `You have already submitted ${usage.submitted} music ${requestLabel}. You have ${usage.left} ${leftLabel} left.`;
+}
+
 function MusicSection({ inviteCode }: { inviteCode: string }) {
   const [status, setStatus] = useState<"idle" | "validating" | "ready" | "invalid">(
     inviteCodeSchema.safeParse(inviteCode).success ? "validating" : "idle",
   );
   const [manualCode, setManualCode] = useState(inviteCode);
+  const [musicUsage, setMusicUsage] = useState<MusicRequestUsage>({
+    submitted: 0,
+    left: MUSIC_REQUEST_LIMIT,
+    limit: MUSIC_REQUEST_LIMIT,
+  });
   const [submitting, setSubmitting] = useState(false);
 
   async function validateCode(rawCode: string) {
@@ -151,8 +186,12 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     try {
       const validation = await callFunction<ValidateInviteResponse>("validate-invite", {
         code: parsed.data,
+        includeSongRequestUsage: true,
+        allowUsedForSongRequests: true,
       });
       if (validation.ok && validation.valid) {
+        setManualCode(parsed.data);
+        setMusicUsage(normalizeMusicUsage(validation));
         setStatus("ready");
         return;
       }
@@ -185,22 +224,34 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       toast.error("Validate your invite code before requesting music.");
       return;
     }
+    if (musicUsage.left <= 0) {
+      toast.error("This invite code already reached the 3 music-request limit.");
+      return;
+    }
 
     setSubmitting(true);
 
     try {
-      await callFunction<SubmitSongRequestResponse>("submit-song-request", {
+      const response = await callFunction<SubmitSongRequestResponse>("submit-song-request", {
         code: manualCode.trim().toLowerCase(),
         guestName: parsed.data.guest_name,
         songTitle: parsed.data.song_title,
         artist: parsed.data.artist,
       });
-      toast.success("Added to the playlist 🎶");
+      if (response.ok) {
+        setMusicUsage(normalizeMusicUsage(response));
+      }
+      toast.success("Added to the playlist.");
       form.reset();
     } catch (error) {
       console.error(error);
 
       if (error instanceof Error && error.message === "song_request_limit_reached") {
+        setMusicUsage((current) => ({
+          ...current,
+          submitted: current.limit,
+          left: 0,
+        }));
         toast.error("This invite code already reached the 3 music-request limit.");
       } else {
         toast.error("Could not save your request. Please try again.");
@@ -265,16 +316,17 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
           onSubmit={onSubmit}
           className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
         >
+          <p className="text-sm text-foreground/75">{musicUsageMessage(musicUsage)}</p>
           <Field name="guest_name" label="Your name" />
           <Field name="song_title" label="Song title" />
           <Field name="artist" label="Artist" />
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || musicUsage.left <= 0}
             className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
           >
             <Music size={16} />
-            {submitting ? "Adding…" : "Add to playlist"}
+            {submitting ? "Adding..." : musicUsage.left <= 0 ? "Limit reached" : "Add to playlist"}
           </button>
         </form>
       )}
