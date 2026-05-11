@@ -9,6 +9,7 @@ import {
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { LanguageProvider } from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 
@@ -24,6 +25,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
+            search={{ code: undefined, lang: undefined }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Go home
@@ -87,7 +89,7 @@ import { Toaster } from "../components/ui/sonner";
 
 function RootComponent() {
   return (
-    <>
+    <LanguageProvider>
       <AuthRedirectHandler />
       <SiteHeader />
       <main>
@@ -95,7 +97,7 @@ function RootComponent() {
       </main>
       <SiteFooter />
       <Toaster />
-    </>
+    </LanguageProvider>
   );
 }
 

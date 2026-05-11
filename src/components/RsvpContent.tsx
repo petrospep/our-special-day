@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/PageShell";
 import { callFunction } from "@/lib/functions";
+import { useLanguage, type Language } from "@/lib/i18n";
 import type {
   AttendanceStatus,
   InviteCodeStatus,
@@ -33,32 +34,95 @@ type RsvpFormDefaults = {
   phoneNumber: string;
 };
 
-const invalidCopy: Record<InvalidReason, { title: string; message: string; action: string }> = {
-  missing_code: {
-    title: "We need your invitation code",
-    message: "Enter the code from your invitation and we will find your RSVP form.",
-    action: "Check code",
+const invalidCopy: Record<
+  Language,
+  Record<InvalidReason, { title: string; message: string; action: string }>
+> = {
+  en: {
+    missing_code: {
+      title: "We need your invitation code",
+      message: "Enter the code from your invitation and we will find your RSVP form.",
+      action: "Check code",
+    },
+    invalid_format: {
+      title: "That code does not look right",
+      message:
+        "Invitation codes use lowercase words followed by the letters and numbers on your invite.",
+      action: "Try another code",
+    },
+    not_found: {
+      title: "We could not find that invitation",
+      message: "Please check the code and try again. If it still does not work, send us a message.",
+      action: "Try another code",
+    },
+    used: {
+      title: "This RSVP has already been sent",
+      message: "We have already received a response for this invitation code.",
+      action: "Use a different code",
+    },
+    disabled: {
+      title: "This invitation is not active",
+      message: "This code has been disabled. Please contact us if you think this is a mistake.",
+      action: "Use a different code",
+    },
   },
-  invalid_format: {
-    title: "That code does not look right",
-    message:
-      "Invitation codes use lowercase words followed by the letters and numbers on your invite.",
-    action: "Try another code",
+  el: {
+    missing_code: {
+      title: "Βάλτε τον κωδικό της πρόσκλησής σας",
+      message: "Γράψτε τον κωδικό που υπάρχει στην πρόσκληση για να ανοίξει η φόρμα RSVP.",
+      action: "Έλεγχος κωδικού",
+    },
+    invalid_format: {
+      title: "Ο κωδικός δεν φαίνεται σωστός",
+      message:
+        "Οι κωδικοί πρόσκλησης χρησιμοποιούν μικρές λέξεις και τα γράμματα/νούμερα της πρόσκλησής σας.",
+      action: "Δοκιμάστε άλλον κωδικό",
+    },
+    not_found: {
+      title: "Δεν βρήκαμε αυτή την πρόσκληση",
+      message: "Ελέγξτε τον κωδικό και δοκιμάστε ξανά. Αν πάλι δεν λειτουργεί, στείλτε μας μήνυμα.",
+      action: "Δοκιμάστε άλλον κωδικό",
+    },
+    used: {
+      title: "Αυτό το RSVP έχει ήδη σταλεί",
+      message: "Έχουμε ήδη λάβει απάντηση για τον συγκεκριμένο κωδικό πρόσκλησης.",
+      action: "Χρήση άλλου κωδικού",
+    },
+    disabled: {
+      title: "Αυτή η πρόσκληση δεν είναι ενεργή",
+      message:
+        "Ο κωδικός έχει απενεργοποιηθεί. Αν πιστεύετε ότι πρόκειται για λάθος, επικοινωνήστε μαζί μας.",
+      action: "Χρήση άλλου κωδικού",
+    },
   },
-  not_found: {
-    title: "We could not find that invitation",
-    message: "Please check the code and try again. If it still does not work, send us a message.",
-    action: "Try another code",
+};
+
+const rsvpCopy = {
+  en: {
+    pageEyebrow: "Kindly Respond",
+    pageTitle: "RSVP",
+    pageSubtitle: "Enter your invitation code to respond by 15th June 2026.",
+    checkError: "We could not check your invitation code. Please try again.",
+    codeFallback: "Enter a valid invitation code.",
+    formFallback: "Please check the form.",
+    sentToast: "Your RSVP has been sent.",
+    submitError: "We could not send your RSVP. Please try again.",
+    findTitle: "Find your invitation",
+    findMessage: "Your personal code is printed on your invitation.",
+    checkCode: "Check code",
   },
-  used: {
-    title: "This RSVP has already been sent",
-    message: "We have already received a response for this invitation code.",
-    action: "Use a different code",
-  },
-  disabled: {
-    title: "This invitation is not active",
-    message: "This code has been disabled. Please contact us if you think this is a mistake.",
-    action: "Use a different code",
+  el: {
+    pageEyebrow: "Παρακαλούμε απαντήστε",
+    pageTitle: "RSVP",
+    pageSubtitle: "Βάλτε τον κωδικό της πρόσκλησης για να απαντήσετε έως τις 15 Ιουνίου 2026.",
+    checkError: "Δεν μπορέσαμε να ελέγξουμε τον κωδικό πρόσκλησης. Δοκιμάστε ξανά.",
+    codeFallback: "Βάλτε έναν έγκυρο κωδικό πρόσκλησης.",
+    formFallback: "Ελέγξτε λίγο τη φόρμα.",
+    sentToast: "Λάβαμε την απάντησή σας.",
+    submitError: "Δεν μπορέσαμε να στείλουμε την απάντησή σας. Δοκιμάστε ξανά.",
+    findTitle: "Βρείτε την πρόσκλησή σας",
+    findMessage: "Ο προσωπικός σας κωδικός είναι τυπωμένος πάνω στην πρόσκληση.",
+    checkCode: "Έλεγχος κωδικού",
   },
 };
 
@@ -66,14 +130,14 @@ function normalizeCode(value: string) {
   return value.trim().toLowerCase();
 }
 
-function formatSubmittedAt(value: string) {
+function formatSubmittedAt(value: string, language: Language) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return value;
   }
 
-  return new Intl.DateTimeFormat("en-GB", {
+  return new Intl.DateTimeFormat(language === "el" ? "el-GR" : "en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -149,6 +213,8 @@ function getFieldErrors(error: {
 }
 
 export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: string }) {
+  const { language, translateValidation } = useLanguage();
+  const copy = rsvpCopy[language];
   const initialCode = useMemo(() => normalizeCode(initialCodeFromUrl ?? ""), [initialCodeFromUrl]);
   const [status, setStatus] = useState<RsvpStatus>(initialCode ? "validating" : "idle");
   const [code, setCode] = useState(initialCode);
@@ -218,7 +284,14 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
           return;
         }
 
-        setInvalidReason(response.reason in invalidCopy ? response.reason : "not_found");
+        setInvalidReason(
+          response.reason === "missing_code" ||
+            response.reason === "not_found" ||
+            response.reason === "used" ||
+            response.reason === "disabled"
+            ? response.reason
+            : "not_found",
+        );
         setStatus("invalid");
         return;
       }
@@ -231,7 +304,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
 
       console.error(error);
       setStatus("error");
-      toast.error("We could not check your invitation code. Please try again.");
+      toast.error(copy.checkError);
     }
   }
 
@@ -250,6 +323,9 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     }
 
     void validateCode(initialCode);
+    // validateCode intentionally stays outside the dependency list so changing
+    // language does not reset an in-progress RSVP form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCode]);
 
   function onManualCodeSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -257,7 +333,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     const parsed = inviteCodeSchema.safeParse(manualCode);
 
     if (!parsed.success) {
-      setCodeError(parsed.error.issues[0]?.message ?? "Enter a valid invitation code.");
+      setCodeError(translateValidation(parsed.error.issues[0]?.message ?? copy.codeFallback));
       setInvalidReason(manualCode.trim() ? "invalid_format" : "missing_code");
       setStatus(manualCode.trim() ? "invalid" : "idle");
       return;
@@ -293,8 +369,15 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
 
     if (!parsed.success) {
       const errors = getFieldErrors(parsed.error);
-      setFormErrors(errors);
-      toast.error(parsed.error.issues[0]?.message ?? "Please check the form.");
+      setFormErrors(
+        Object.fromEntries(
+          Object.entries(errors).map(([field, message]) => [
+            field,
+            translateValidation(message ?? copy.formFallback),
+          ]),
+        ),
+      );
+      toast.error(translateValidation(parsed.error.issues[0]?.message ?? copy.formFallback));
       return;
     }
 
@@ -321,7 +404,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       });
 
       setStatus("success");
-      toast.success("Your RSVP has been sent.");
+      toast.success(copy.sentToast);
       form.reset();
       setAdditionalGuests([]);
     } catch (error) {
@@ -350,7 +433,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       console.error(error);
       submitInFlight.current = false;
       setStatus("ready");
-      toast.error("We could not send your RSVP. Please try again.");
+      toast.error(copy.submitError);
     }
   }
 
@@ -359,9 +442,9 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       <PageShell
         id="rsvp"
         theme="rsvp"
-        eyebrow="Kindly Respond"
-        title="RSVP"
-        subtitle="Enter your invitation code to respond by 15th June 2026."
+        eyebrow={copy.pageEyebrow}
+        title={copy.pageTitle}
+        subtitle={copy.pageSubtitle}
       >
         <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12 max-w-2xl mx-auto mt-6">
           {status === "idle" && (
@@ -373,9 +456,9 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
                 setCodeError(null);
               }}
               onSubmit={onManualCodeSubmit}
-              title="Find your invitation"
-              message="Your personal code is printed on your invitation."
-              action="Check code"
+              title={copy.findTitle}
+              message={copy.findMessage}
+              action={copy.checkCode}
             />
           )}
 
@@ -471,6 +554,8 @@ function CodePanel({
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
+  const { language } = useLanguage();
+
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       <div className="text-center">
@@ -479,7 +564,9 @@ function CodePanel({
       </div>
 
       <label className="block">
-        <span className="eyebrow block mb-2">Invitation code</span>
+        <span className="eyebrow block mb-2">
+          {language === "en" ? "Invitation code" : "Κωδικός πρόσκλησης"}
+        </span>
         <input
           name="code"
           value={manualCode}
@@ -508,12 +595,18 @@ function CodePanel({
 }
 
 function LoadingPanel() {
+  const { language } = useLanguage();
+
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-12 text-center">
       <Loader2 className="h-8 w-8 animate-spin text-olive" aria-hidden />
       <div>
-        <p className="display-serif text-3xl text-olive">Checking your invitation</p>
-        <p className="mt-3 text-foreground/75">This should only take a moment.</p>
+        <p className="display-serif text-3xl text-olive">
+          {language === "en" ? "Checking your invitation" : "Ελέγχουμε τον κωδικό σας"}
+        </p>
+        <p className="mt-3 text-foreground/75">
+          {language === "en" ? "This should only take a moment." : "Δεν θα αργήσει."}
+        </p>
       </div>
     </div>
   );
@@ -532,7 +625,8 @@ function InvalidPanel({
   onChange: (value: string) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
-  const copy = invalidCopy[reason];
+  const { language } = useLanguage();
+  const copy = invalidCopy[language][reason];
 
   return (
     <div className="space-y-8">
@@ -546,7 +640,7 @@ function InvalidPanel({
         codeError={codeError}
         onChange={onChange}
         onSubmit={onSubmit}
-        title="Try your code again"
+        title={language === "en" ? "Try your code again" : "Ξαναδοκιμάστε τον κωδικό σας"}
         action={copy.action}
       />
     </div>
@@ -582,21 +676,23 @@ function RsvpForm({
     value: string | boolean,
   ) => void;
 }) {
+  const { language } = useLanguage();
   const guestCount = 1 + additionalGuests.length;
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
       {isMaybeUpdate && (
         <div className="border border-olive/20 bg-olive/5 p-4 text-sm text-foreground/75">
-          Your RSVP is currently marked as very likely. You can update it to accept or decline when
-          you know.
+          {language === "en"
+            ? "Your RSVP is currently marked as very likely. You can update it to accept or decline when you know."
+            : "Η απάντησή σας είναι προς το παρόν «μάλλον ναι». Μπορείτε να την αλλάξετε όταν είστε σίγουροι/ες."}
         </div>
       )}
       <fieldset>
         <div className="grid sm:grid-cols-2 gap-3">
           <Input
             name="submitterFirstName"
-            label="First name"
+            label={language === "en" ? "First name" : "Όνομα"}
             error={errors["submitter.firstName"]}
             defaultValue={defaults?.submitterFirstName ?? ""}
             autoComplete="given-name"
@@ -604,7 +700,7 @@ function RsvpForm({
           />
           <Input
             name="submitterLastName"
-            label="Last name"
+            label={language === "en" ? "Last name" : "Επώνυμο"}
             error={errors["submitter.lastName"]}
             defaultValue={defaults?.submitterLastName ?? ""}
             autoComplete="family-name"
@@ -614,12 +710,14 @@ function RsvpForm({
       </fieldset>
 
       <fieldset>
-        <legend className="eyebrow mb-3">Contact details</legend>
+        <legend className="eyebrow mb-3">
+          {language === "en" ? "Contact details" : "Στοιχεία επικοινωνίας"}
+        </legend>
         <div className="grid sm:grid-cols-2 gap-3">
           <Input
             name="email"
             type="email"
-            label="Email (optional)"
+            label={language === "en" ? "Email (optional)" : "Email (προαιρετικό)"}
             error={errors.email}
             defaultValue={defaults?.email ?? ""}
             autoComplete="email"
@@ -627,7 +725,7 @@ function RsvpForm({
           <Input
             name="phoneNumber"
             type="tel"
-            label="Phone number (optional)"
+            label={language === "en" ? "Phone number (optional)" : "Τηλέφωνο (προαιρετικό)"}
             error={errors.phoneNumber}
             defaultValue={defaults?.phoneNumber ?? ""}
             autoComplete="tel"
@@ -636,12 +734,14 @@ function RsvpForm({
       </fieldset>
 
       <fieldset aria-describedby={errors.attendanceStatus ? "attending-error" : undefined}>
-        <legend className="eyebrow mb-3">Will you be attending?</legend>
+        <legend className="eyebrow mb-3">
+          {language === "en" ? "Will you be attending?" : "Θα παρευρεθείτε;"}
+        </legend>
         <div className="grid sm:grid-cols-3 gap-3">
           <RadioCard
             name="attending"
             value="yes"
-            label="Accept"
+            label={language === "en" ? "Accept" : "Θα έρθω"}
             checked={attending === "yes"}
             onChange={() => onAttendingChange("yes")}
             required
@@ -649,7 +749,7 @@ function RsvpForm({
           <RadioCard
             name="attending"
             value="no"
-            label="Decline"
+            label={language === "en" ? "Decline" : "Δεν θα μπορέσω"}
             checked={attending === "no"}
             onChange={() => onAttendingChange("no")}
             required
@@ -657,7 +757,11 @@ function RsvpForm({
           <RadioCard
             name="attending"
             value="maybe"
-            label="Very likely, will confirm soon"
+            label={
+              language === "en"
+                ? "Very likely, will confirm soon"
+                : "Μάλλον ναι, θα επιβεβαιώσω σύντομα"
+            }
             checked={attending === "maybe"}
             onChange={() => onAttendingChange("maybe")}
             required
@@ -672,17 +776,19 @@ function RsvpForm({
 
       <fieldset aria-describedby={errors.guests ? "guest-count-error" : undefined}>
         <div className="flex items-center justify-between gap-3 mb-3">
-          <legend className="eyebrow">RSVP list</legend>
+          <legend className="eyebrow">{language === "en" ? "RSVP list" : "Καλεσμένοι"}</legend>
           <button
             type="button"
             onClick={onAddGuest}
             disabled={guestCount >= 10}
             className="text-xs tracking-[0.15em] uppercase border border-olive/35 px-3 py-2 text-olive hover:bg-olive/5 transition disabled:opacity-50"
           >
-            Add guest
+            {language === "en" ? "Add guest" : "Προσθήκη καλεσμένου"}
           </button>
         </div>
-        <p className="text-sm text-foreground/70">Total guests: {guestCount}</p>
+        <p className="text-sm text-foreground/70">
+          {language === "en" ? "Total guests" : "Σύνολο καλεσμένων"}: {guestCount}
+        </p>
         <div className="mt-3 space-y-3">
           {additionalGuests.map((guest, index) => (
             <div key={index} className="space-y-3 border border-olive/20 p-3 rounded-sm">
@@ -692,7 +798,7 @@ function RsvpForm({
                   onChange={(event) => onGuestChange(index, "firstName", event.target.value)}
                   aria-invalid={Boolean(errors[`guests.${index}.firstName`])}
                   className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-                  placeholder="First name"
+                  placeholder={language === "en" ? "First name" : "Όνομα"}
                   required
                 />
                 <input
@@ -700,7 +806,7 @@ function RsvpForm({
                   onChange={(event) => onGuestChange(index, "lastName", event.target.value)}
                   aria-invalid={Boolean(errors[`guests.${index}.lastName`])}
                   className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-                  placeholder="Last name"
+                  placeholder={language === "en" ? "Last name" : "Επώνυμο"}
                   required
                 />
               </div>
@@ -722,7 +828,7 @@ function RsvpForm({
                 onClick={() => onRemoveGuest(index)}
                 className="text-xs tracking-[0.15em] uppercase border border-coral/45 px-3 py-2 text-coral hover:bg-coral/5 transition"
               >
-                Remove
+                {language === "en" ? "Remove" : "Αφαίρεση"}
               </button>
             </div>
           ))}
@@ -740,34 +846,61 @@ function RsvpForm({
         className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-        {submitting ? "Sending..." : isMaybeUpdate ? "Update RSVP" : "Send RSVP"}
+        {submitting
+          ? language === "en"
+            ? "Sending..."
+            : "Αποστολή..."
+          : isMaybeUpdate
+            ? language === "en"
+              ? "Update RSVP"
+              : "Ενημέρωση RSVP"
+            : language === "en"
+              ? "Send RSVP"
+              : "Αποστολή RSVP"}
       </button>
     </form>
   );
 }
 
 function SuccessPanel({ attending }: { attending: AttendanceChoice | null }) {
+  const { language } = useLanguage();
   const isAttending = attending === "yes";
   const isMaybe = attending === "maybe";
+  const title = isMaybe
+    ? language === "en"
+      ? "Thanks for letting us know"
+      : "Ευχαριστούμε που μας ενημερώσατε"
+    : isAttending
+      ? language === "en"
+        ? "We can't wait"
+        : "Ανυπομονούμε"
+      : language === "en"
+        ? "We'll miss you"
+        : "Θα μας λείψετε";
+  const message = isMaybe
+    ? language === "en"
+      ? "We have marked you as very likely. Use your invitation code again when you are ready to accept or decline."
+      : "Κρατήσαμε την απάντησή σας ως «μάλλον ναι». Όταν είστε σίγουροι/ες, βάλτε ξανά τον κωδικό σας για να την αλλάξετε."
+    : isAttending
+      ? language === "en"
+        ? "Your RSVP has been received. See you on 25 July in Athens."
+        : "Λάβαμε την απάντησή σας. Τα λέμε στις 25 Ιουλίου στην Αθήνα."
+      : language === "en"
+        ? "Thank you for letting us know. We will be thinking of you."
+        : "Ευχαριστούμε που μας ενημερώσατε. Θα σας έχουμε στη σκέψη μας.";
 
   return (
     <div className="text-center py-8">
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-olive text-cream">
         <Check className="h-6 w-6" aria-hidden />
       </div>
-      <p className="display-serif text-4xl text-olive mt-6">
-        {isMaybe ? "Thanks for letting us know" : isAttending ? "We can't wait" : "We'll miss you"}
-      </p>
-      <p className="mt-4 text-foreground/75">
-        {isMaybe
-          ? "We have marked you as very likely. Use your invitation code again when you are ready to accept or decline."
-          : isAttending
-            ? "Your RSVP has been received. See you on 25 July in Athens."
-            : "Thank you for letting us know. We will be thinking of you."}
-      </p>
+      <p className="display-serif text-4xl text-olive mt-6">{title}</p>
+      <p className="mt-4 text-foreground/75">{message}</p>
       {!isMaybe && (
         <p className="mt-5 text-sm text-foreground/65">
-          If you need to change anything, please contact Petros directly.
+          {language === "en"
+            ? "If you need to change anything, please contact Petros directly."
+            : "Αν χρειαστεί να αλλάξετε κάτι, επικοινωνήστε απευθείας με τον Πέτρο."}
         </p>
       )}
       <Heart className="mx-auto mt-8 h-6 w-6 text-coral" aria-hidden />
@@ -777,36 +910,61 @@ function SuccessPanel({ attending }: { attending: AttendanceChoice | null }) {
 }
 
 function SubmittedRsvpPanel({ rsvp }: { rsvp: SubmittedRsvpResponse }) {
+  const { language } = useLanguage();
   const attendanceStatus = getResponseAttendanceStatus(rsvp);
   const attendance =
     attendanceStatus === "attending"
-      ? "Attending"
+      ? language === "en"
+        ? "Attending"
+        : "Θα έρθει"
       : attendanceStatus === "maybe"
-        ? "Very likely"
-        : "Not attending";
+        ? language === "en"
+          ? "Very likely"
+          : "Μάλλον ναι"
+        : language === "en"
+          ? "Not attending"
+          : "Δεν θα έρθει";
 
   return (
     <div className="py-2">
       <div className="text-center">
         <Check className="mx-auto h-8 w-8 text-olive" aria-hidden />
-        <p className="display-serif text-3xl text-olive mt-5">Your RSVP has already been sent</p>
+        <p className="display-serif text-3xl text-olive mt-5">
+          {language === "en"
+            ? "Your RSVP has already been sent"
+            : "Έχουμε ήδη λάβει την απάντησή σας"}
+        </p>
         <p className="mt-3 text-foreground/75">
-          Here is the response we have recorded for this invitation code.
+          {language === "en"
+            ? "Here is the response we have recorded for this invitation code."
+            : "Αυτή είναι η απάντηση που έχουμε καταγράψει για αυτόν τον κωδικό πρόσκλησης."}
         </p>
       </div>
 
       <div className="mt-8 space-y-6">
         <div className="grid sm:grid-cols-2 gap-4 border-y border-olive/15 py-5">
-          <SummaryItem label="Name" value={rsvp.fullName} />
-          <SummaryItem label="Attendance" value={attendance} />
-          <SummaryItem label="Total guests" value={String(rsvp.guestCount)} />
-          <SummaryItem label="Submitted" value={formatSubmittedAt(rsvp.submittedAt)} />
-          <SummaryItem label="Email" value={rsvp.email ?? "Not provided"} />
-          <SummaryItem label="Phone" value={rsvp.phoneNumber ?? "Not provided"} />
+          <SummaryItem label={language === "en" ? "Name" : "Όνομα"} value={rsvp.fullName} />
+          <SummaryItem label={language === "en" ? "Attendance" : "Παρουσία"} value={attendance} />
+          <SummaryItem
+            label={language === "en" ? "Total guests" : "Σύνολο καλεσμένων"}
+            value={String(rsvp.guestCount)}
+          />
+          <SummaryItem
+            label={language === "en" ? "Submitted" : "Υποβλήθηκε"}
+            value={formatSubmittedAt(rsvp.submittedAt, language)}
+          />
+          <SummaryItem
+            label="Email"
+            value={rsvp.email ?? (language === "en" ? "Not provided" : "Δεν δόθηκε")}
+          />
+          <SummaryItem
+            label={language === "en" ? "Phone" : "Τηλέφωνο"}
+            value={rsvp.phoneNumber ?? (language === "en" ? "Not provided" : "Δεν δόθηκε")}
+          />
         </div>
 
         <section>
-          <h3 className="eyebrow mb-3">RSVP list</h3>
+          <h3 className="eyebrow mb-3">{language === "en" ? "RSVP list" : "Καλεσμένοι"}</h3>
           <ul className="space-y-2">
             {rsvp.guests.map((guest, index) => (
               <li
@@ -815,10 +973,16 @@ function SubmittedRsvpPanel({ rsvp }: { rsvp: SubmittedRsvpResponse }) {
               >
                 <span className="font-medium text-olive">
                   {guest.fullName}
-                  {guest.isSubmitter ? " (submitter)" : ""}
+                  {guest.isSubmitter
+                    ? language === "en"
+                      ? " (submitter)"
+                      : " (άτομο επικοινωνίας)"
+                    : ""}
                 </span>
                 {guest.under13 && (
-                  <span className="text-sm text-foreground/65">Under 13, age {guest.age}</span>
+                  <span className="text-sm text-foreground/65">
+                    {language === "en" ? "Under 13, age" : "Κάτω των 13, ηλικία"} {guest.age}
+                  </span>
                 )}
               </li>
             ))}
@@ -827,7 +991,9 @@ function SubmittedRsvpPanel({ rsvp }: { rsvp: SubmittedRsvpResponse }) {
       </div>
 
       <p className="mt-7 text-center text-sm text-foreground/65">
-        If you need to change anything, please contact Petros directly.
+        {language === "en"
+          ? "If you need to change anything, please contact Petros directly."
+          : "Αν χρειαστεί να αλλάξετε κάτι, επικοινωνήστε απευθείας με τον Πέτρο."}
       </p>
     </div>
   );
@@ -843,16 +1009,22 @@ function SummaryItem({ label, value }: { label: string; value: string }) {
 }
 
 function ErrorPanel({ onRetry }: { onRetry: () => void }) {
+  const { language } = useLanguage();
   const search = useSearch({ strict: false });
   const inviteCode = typeof search.code === "string" ? search.code.trim().toLowerCase() : undefined;
-  const homeSearch = { code: inviteCode };
+  const searchLanguage = search.lang === "el" || search.lang === "en" ? search.lang : undefined;
+  const homeSearch = { code: inviteCode, lang: searchLanguage };
 
   return (
     <div className="text-center py-8">
       <AlertCircle className="mx-auto h-8 w-8 text-coral" aria-hidden />
-      <p className="display-serif text-3xl text-olive mt-5">Something went wrong</p>
+      <p className="display-serif text-3xl text-olive mt-5">
+        {language === "en" ? "Something went wrong" : "Κάτι πήγε στραβά"}
+      </p>
       <p className="mt-3 text-foreground/75">
-        We could not reach the RSVP service. Please try again in a moment.
+        {language === "en"
+          ? "We could not reach the RSVP service. Please try again in a moment."
+          : "Δεν μπορέσαμε να συνδεθούμε με την υπηρεσία RSVP. Δοκιμάστε ξανά σε λίγο."}
       </p>
       <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
         <button
@@ -860,14 +1032,14 @@ function ErrorPanel({ onRetry }: { onRetry: () => void }) {
           onClick={onRetry}
           className="inline-flex items-center justify-center bg-olive text-cream px-8 py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
         >
-          Try again
+          {language === "en" ? "Try again" : "Δοκιμάστε ξανά"}
         </button>
         <Link
           to="/"
           search={homeSearch}
           className="inline-flex items-center justify-center border border-olive/40 px-8 py-3 text-sm tracking-[0.2em] uppercase text-olive hover:bg-olive/5 transition"
         >
-          Home
+          {language === "en" ? "Home" : "Αρχική"}
         </Link>
       </div>
     </div>
@@ -889,6 +1061,7 @@ function GuestAgeFields({
   onUnder13Change: (checked: boolean) => void;
   onAgeChange: (value: string) => void;
 }) {
+  const { language } = useLanguage();
   const ageId = `${idPrefix}-age`;
   const ageErrorId = `${ageId}-error`;
 
@@ -900,11 +1073,11 @@ function GuestAgeFields({
           checked={under13}
           onChange={(event) => onUnder13Change(event.target.checked)}
         />
-        Under 13 years old
+        {language === "en" ? "Under 13 years old" : "Κάτω των 13 ετών"}
       </label>
       {under13 && (
         <label className="block max-w-40">
-          <span className="eyebrow block mb-2">Age</span>
+          <span className="eyebrow block mb-2">{language === "en" ? "Age" : "Ηλικία"}</span>
           <input
             id={ageId}
             type="number"

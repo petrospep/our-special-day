@@ -2,19 +2,24 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Check, Copy, Home } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import invitationImage from "@/assets/invitation-reference.png";
+import invitationElImage from "@/assets/invitation_el.jpg";
+import invitationEnImage from "@/assets/invitation_en.jpg";
+import { useLanguage } from "@/lib/i18n";
 
 export const Route = createFileRoute("/invitation")({
   validateSearch: (search: Record<string, unknown>) => ({
     code: typeof search.code === "string" ? search.code : undefined,
+    lang: search.lang === "el" || search.lang === "en" ? (search.lang as "el" | "en") : undefined,
   }),
   component: Invitation,
 });
 
 function Invitation() {
+  const { language } = useLanguage();
   const search = Route.useSearch();
   const inviteCode = (search.code ?? "").trim().toLowerCase();
-  const homeSearch = inviteCode ? { code: inviteCode } : {};
+  const homeSearch = { code: inviteCode || undefined, lang: language };
+  const invitationImage = language === "el" ? invitationElImage : invitationEnImage;
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -34,9 +39,13 @@ function Invitation() {
     try {
       await navigator.clipboard.writeText(inviteCode);
       setCopied(true);
-      toast.success("Invitation code copied.");
+      toast.success(language === "en" ? "Invitation code copied." : "Ο κωδικός αντιγράφηκε.");
     } catch {
-      toast.error("Could not copy invitation code.");
+      toast.error(
+        language === "en"
+          ? "Could not copy invitation code."
+          : "Δεν μπορέσαμε να αντιγράψουμε τον κωδικό.",
+      );
     }
   }
 
@@ -45,7 +54,11 @@ function Invitation() {
       <div className="mx-auto flex max-w-5xl flex-col items-center gap-6">
         <img
           src={invitationImage}
-          alt="Wedding invitation for Petros and Nikki"
+          alt={
+            language === "en"
+              ? "Wedding invitation for Petros and Nikki"
+              : "Πρόσκληση γάμου για τον Πέτρο και τη Nikki"
+          }
           className="w-full max-w-3xl border border-olive/20 bg-cream shadow-xl shadow-olive/10"
         />
 
@@ -55,9 +68,9 @@ function Invitation() {
               type="button"
               onClick={copyInviteCode}
               className="mx-auto mb-3 flex items-center justify-center gap-2 font-mono text-[0.65rem] uppercase tracking-[0.18em] text-olive/55 transition hover:text-olive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-olive/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
-              aria-label={`Copy invitation code ${inviteCode}`}
+              aria-label={`${language === "en" ? "Copy invitation code" : "Αντιγραφή κωδικού πρόσκλησης"} ${inviteCode}`}
             >
-              Invitation code {inviteCode}
+              {language === "en" ? "Invitation code" : "Κωδικός πρόσκλησης"} {inviteCode}
               {copied ? <Check size={12} aria-hidden /> : <Copy size={12} aria-hidden />}
             </button>
           ) : null}
@@ -77,7 +90,7 @@ function Invitation() {
               className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-sm border border-olive/40 px-5 py-3 text-sm uppercase tracking-[0.2em] text-olive transition hover:bg-olive/5"
             >
               <Home size={16} aria-hidden />
-              Home
+              {language === "en" ? "Home" : "Αρχική"}
             </Link>
           </div>
         </div>

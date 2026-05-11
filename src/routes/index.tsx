@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { callFunction } from "@/lib/functions";
+import { useLanguage, type Language } from "@/lib/i18n";
 import { RsvpContent } from "@/components/RsvpContent";
 import type {
   GiftRegion,
@@ -26,6 +27,7 @@ import couplePhoto from "@/assets/couplephoto.jpg";
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
     code: typeof search.code === "string" ? search.code : undefined,
+    lang: search.lang === "el" || search.lang === "en" ? (search.lang as "el" | "en") : undefined,
   }),
   component: Index,
 });
@@ -48,6 +50,8 @@ function Index() {
 
 /* ---------------- Hero ---------------- */
 function Hero() {
+  const { language } = useLanguage();
+
   return (
     <section
       id="home"
@@ -55,7 +59,7 @@ function Hero() {
     >
       <img
         src={couplePhoto}
-        alt="Petros and Nikki"
+        alt={language === "en" ? "Petros and Nikki" : "Ο Πέτρος και η Nikki"}
         className="absolute inset-0 h-full w-full object-contain object-center"
       />
     </section>
@@ -66,53 +70,98 @@ function Hero() {
 const events = [
   {
     time: "19:30",
-    title: "Wedding ceremony",
-    venue: "Saints Constantine and Helen Orthodox Cathedral of Glyfada",
-    address: "Glyfada, Athens, Greece",
+    title: {
+      en: "Wedding ceremony",
+      el: "Τελετή γάμου",
+    },
+    venue: {
+      en: "Saints Constantine and Helen Orthodox Cathedral of Glyfada",
+      el: "Ιερός Καθεδρικός Ναός Αγίων Κωνσταντίνου και Ελένης Γλυφάδας",
+    },
+    address: {
+      en: "Glyfada, Athens, Greece",
+      el: "Γλυφάδα, Αθήνα, Ελλάδα",
+    },
     mapsUrl:
       "https://www.google.com/maps/search/?api=1&query=Saints%20Constantine%20and%20Helen%20Orthodox%20Cathedral%20of%20Glyfada%2C%20Glyfada%2C%20Athens%2C%20Greece",
-    dress: "Please arrive by 19:15.",
-    note: "You are cordially invited to join us as we begin our wedding celebration.",
+    dress: {
+      en: "Please arrive by 19:15.",
+      el: "Καλό είναι να είστε εκεί έως τις 19:15.",
+    },
+    note: {
+      en: "You are cordially invited to join us as we begin our wedding celebration.",
+      el: "Θα χαρούμε πολύ να είστε μαζί μας στο ξεκίνημα της γιορτής μας.",
+    },
+    ceremony: true,
   },
   {
-    time: "Following the ceremony",
-    title: "Reception",
+    time: {
+      en: "Following the ceremony",
+      el: "Μετά την τελετή",
+    },
+    title: {
+      en: "Reception",
+      el: "Δεξίωση",
+    },
     venue: "Efilena Estate",
     address: "Odos Amenon, Oikismos Galene, Koropi, 194 00",
     mapsUrl: "https://maps.app.goo.gl/sEp6daE3wwtVTC3N6",
-    dress: "Dinner and dancing to follow.",
-    note: "We look forward to celebrating with you after the ceremony.",
+    dress: {
+      en: "Dinner and dancing to follow.",
+      el: "Θα ακολουθήσουν δείπνο και χορός.",
+    },
+    note: {
+      en: "We look forward to celebrating with you after the ceremony.",
+      el: "Ανυπομονούμε να γιορτάσουμε μαζί σας μετά την τελετή.",
+    },
+    ceremony: false,
   },
 ];
 
 function EventsSection() {
+  const { language } = useLanguage();
+
   return (
     <PageShell
       id="events"
       theme="events"
-      eyebrow="The Day"
+      eyebrow={language === "en" ? "The Day" : "Η μέρα μας"}
       title={
         <>
-          Saturday, 25<sup className="text-3xl">th</sup> July
+          {language === "en" ? (
+            <>
+              Saturday, 25<sup className="text-3xl">th</sup> July
+            </>
+          ) : (
+            "Σάββατο, 25 Ιουλίου"
+          )}
         </>
       }
-      subtitle="You are cordially invited to the wedding of Petros & Nikki in Athens, Greece."
+      subtitle={
+        language === "en"
+          ? "You are cordially invited to the wedding of Petros & Nikki in Athens, Greece."
+          : "Με μεγάλη χαρά σας προσκαλούμε στον γάμο του Πέτρου και της Nikki στην Αθήνα."
+      }
     >
       <div className="space-y-8 mt-8">
         {events.map((e) => (
           <article
-            key={e.title}
+            key={typeof e.title === "string" ? e.title : e.title.en}
             className="relative bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12"
           >
-            <p className="eyebrow">{e.time}</p>
-            <h3 className="display-serif text-4xl md:text-5xl text-olive mt-3">{e.title}</h3>
+            <p className="eyebrow">{typeof e.time === "string" ? e.time : e.time[language]}</p>
+            <h3 className="display-serif text-4xl md:text-5xl text-olive mt-3">
+              {typeof e.title === "string" ? e.title : e.title[language]}
+            </h3>
             <div className="mt-6 grid sm:grid-cols-2 gap-5 text-foreground/80">
               <div className="flex gap-3">
                 <a
                   href={e.mapsUrl}
                   target="_blank"
                   rel="noreferrer"
-                  aria-label={`Open ${e.venue} in Google Maps`}
+                  aria-label={`${language === "en" ? "Open" : "Άνοιγμα"} ${
+                    typeof e.venue === "string" ? e.venue : e.venue[language]
+                  } ${language === "en" ? "in Google Maps" : "στο Google Maps"}`}
                   className="mt-1 shrink-0 text-olive transition-colors hover:text-olive/75"
                 >
                   <MapPin size={18} aria-hidden="true" />
@@ -124,28 +173,36 @@ function EventsSection() {
                     rel="noreferrer"
                     className="font-medium text-olive transition-colors hover:text-olive/75"
                   >
-                    {e.venue}
+                    {typeof e.venue === "string" ? e.venue : e.venue[language]}
                   </a>
-                  <p className="text-sm">{e.address}</p>
+                  <p className="text-sm">
+                    {typeof e.address === "string" ? e.address : e.address[language]}
+                  </p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <Clock size={18} className="text-olive shrink-0 mt-1" />
                 <p className="text-sm">
-                  {e.title === "Wedding ceremony" ? `Begins at ${e.time}` : e.time}
+                  {e.ceremony
+                    ? language === "en"
+                      ? `Begins at ${e.time}`
+                      : `Ξεκινά στις ${e.time}`
+                    : typeof e.time === "string"
+                      ? e.time
+                      : e.time[language]}
                 </p>
               </div>
               <div className="flex gap-3 sm:col-span-2">
-                {e.title === "Wedding ceremony" ? (
+                {e.ceremony ? (
                   <Clock size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
                 ) : (
                   <Wine size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
                 )}
-                <p className="text-sm">{e.dress}</p>
+                <p className="text-sm">{e.dress[language]}</p>
               </div>
             </div>
             <p className="display-italic text-lg text-olive/80 mt-8 border-t border-olive/15 pt-6">
-              {e.note}
+              {e.note[language]}
             </p>
           </article>
         ))}
@@ -170,24 +227,49 @@ type MusicRequestUsage = {
 
 type MusicBlockReason = "invalid_code" | "rsvp_required" | "maybe" | "not_attending";
 
-const musicBlockCopy: Record<MusicBlockReason, { title: string; message: string }> = {
-  invalid_code: {
-    title: "We need your invitation code",
-    message: "Enter the code from your invitation after you have RSVP'd yes.",
+const musicBlockCopy: Record<
+  Language,
+  Record<MusicBlockReason, { title: string; message: string }>
+> = {
+  en: {
+    invalid_code: {
+      title: "We need your invitation code",
+      message: "Enter the code from your invitation after you have RSVP'd yes.",
+    },
+    rsvp_required: {
+      title: "RSVP first, then send us your song",
+      message:
+        "Music requests open after you submit an attending RSVP. Once that is done, we will use your RSVP name automatically here.",
+    },
+    maybe: {
+      title: "Please confirm first",
+      message: "Once you confirm that you are joining us, you will be able to request music.",
+    },
+    not_attending: {
+      title: "We will miss you on the dance floor",
+      message:
+        "We are sorry you cannot make it. Music requests are for guests joining us on the day, but please let us know if your plans change.",
+    },
   },
-  rsvp_required: {
-    title: "RSVP first, then send us your song",
-    message:
-      "Music requests open after you submit an attending RSVP. Once that is done, we will use your RSVP name automatically here.",
-  },
-  maybe: {
-    title: "Please confirm first",
-    message: "Once you confirm that you are joining us, you will be able to request music.",
-  },
-  not_attending: {
-    title: "We will miss you on the dance floor",
-    message:
-      "We are sorry you cannot make it. Music requests are for guests joining us on the day, but please let us know if your plans change.",
+  el: {
+    invalid_code: {
+      title: "Βάλτε τον κωδικό της πρόσκλησής σας",
+      message: "Γράψτε τον κωδικό από την πρόσκληση, αφού πρώτα έχετε απαντήσει ότι θα έρθετε.",
+    },
+    rsvp_required: {
+      title: "Πρώτα η απάντηση, μετά το τραγούδι",
+      message:
+        "Η φόρμα για τραγούδια ανοίγει αφού απαντήσετε ότι θα έρθετε. Μετά θα χρησιμοποιήσουμε εδώ αυτόματα το όνομα από την απάντησή σας.",
+    },
+    maybe: {
+      title: "Επιβεβαιώστε μας πρώτα",
+      message: "Μόλις μας πείτε σίγουρα ότι θα έρθετε, θα μπορείτε να στείλετε τραγούδια.",
+    },
+    not_attending: {
+      title: "Θα μας λείψετε στην πίστα",
+      message:
+        "Λυπούμαστε που δεν θα τα καταφέρετε. Τα τραγούδια είναι για τους καλεσμένους που θα είναι μαζί μας εκείνη τη μέρα, αλλά πείτε μας αν αλλάξει κάτι.",
+    },
   },
 };
 
@@ -207,14 +289,19 @@ function normalizeMusicUsage(response: {
   };
 }
 
-function musicUsageMessage(usage: MusicRequestUsage) {
+function musicUsageMessage(usage: MusicRequestUsage, language: Language) {
   const requestLabel = usage.submitted === 1 ? "request" : "requests";
   const leftLabel = usage.left === 1 ? "request" : "requests";
+
+  if (language === "el") {
+    return `Έχετε ήδη στείλει ${usage.submitted} ${usage.submitted === 1 ? "τραγούδι" : "τραγούδια"}. Απομένουν ${usage.left}.`;
+  }
 
   return `You have already submitted ${usage.submitted} music ${requestLabel}. You have ${usage.left} ${leftLabel} left.`;
 }
 
 function MusicSection({ inviteCode }: { inviteCode: string }) {
+  const { language, translateValidation } = useLanguage();
   const [status, setStatus] = useState<"idle" | "validating" | "ready" | "invalid">(
     inviteCodeSchema.safeParse(inviteCode).success ? "validating" : "idle",
   );
@@ -267,7 +354,11 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       setStatus("invalid");
     } catch {
       setStatus("invalid");
-      toast.error("Could not validate invite code.");
+      toast.error(
+        language === "en"
+          ? "Could not validate invite code."
+          : "Δεν μπορέσαμε να ελέγξουμε τον κωδικό.",
+      );
     }
   }
 
@@ -285,15 +376,23 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       artist: fd.get("artist"),
     });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? "Invalid input");
+      toast.error(translateValidation(parsed.error.issues[0]?.message ?? "Invalid input"));
       return;
     }
     if (status !== "ready") {
-      toast.error("Validate your invite code before requesting music.");
+      toast.error(
+        language === "en"
+          ? "Validate your invite code before requesting music."
+          : "Ελέγξτε πρώτα τον κωδικό πρόσκλησης.",
+      );
       return;
     }
     if (musicUsage.left <= 0) {
-      toast.error("This invite code already reached the 3 music-request limit.");
+      toast.error(
+        language === "en"
+          ? "This invite code already reached the 3 music-request limit."
+          : "Αυτός ο κωδικός έχει ήδη φτάσει το όριο των 3 τραγουδιών.",
+      );
       return;
     }
 
@@ -309,7 +408,7 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
         setMusicUsage(normalizeMusicUsage(response));
         setSongRequests(response.songRequests ?? []);
       }
-      toast.success("Added to the playlist.");
+      toast.success(language === "en" ? "Added to the playlist." : "Το προσθέσαμε στη λίστα.");
       form.reset();
     } catch (error) {
       console.error(error);
@@ -320,7 +419,11 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
           submitted: current.limit,
           left: 0,
         }));
-        toast.error("This invite code already reached the 3 music-request limit.");
+        toast.error(
+          language === "en"
+            ? "This invite code already reached the 3 music-request limit."
+            : "Αυτός ο κωδικός έχει ήδη φτάσει το όριο των 3 τραγουδιών.",
+        );
       } else if (error instanceof Error && error.message === "rsvp_required") {
         setStatus("invalid");
         setBlockReason("rsvp_required");
@@ -331,7 +434,11 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
         setStatus("invalid");
         setBlockReason("not_attending");
       } else {
-        toast.error("Could not save your request. Please try again.");
+        toast.error(
+          language === "en"
+            ? "Could not save your request. Please try again."
+            : "Δεν μπορέσαμε να αποθηκεύσουμε το τραγούδι. Δοκιμάστε ξανά.",
+        );
       }
     } finally {
       setSubmitting(false);
@@ -343,9 +450,12 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       setManualCode(inviteCode);
       void validateCode(inviteCode);
     }
+    // validateCode intentionally stays outside the dependency list so changing
+    // language does not re-run invite validation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteCode]);
 
-  const blockCopy = musicBlockCopy[blockReason];
+  const blockCopy = musicBlockCopy[language][blockReason];
   const showMusicCodeField =
     status !== "invalid" || !["rsvp_required", "maybe", "not_attending"].includes(blockReason);
 
@@ -353,9 +463,13 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     <PageShell
       id="music"
       theme="music"
-      eyebrow="Music"
-      title="Keep us dancing"
-      subtitle="What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
+      eyebrow={language === "en" ? "Music" : "Μουσική"}
+      title={language === "en" ? "Keep us dancing" : "Κρατήστε την πίστα γεμάτη"}
+      subtitle={
+        language === "en"
+          ? "What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
+          : "Ποιο τραγούδι θα σας σηκώσει για χορό; Πείτε μας και θα φροντίσουμε να το μάθει ο DJ."
+      }
     >
       {status !== "ready" ? (
         <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12 max-w-2xl mx-auto mt-6">
@@ -366,7 +480,9 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
             </div>
             {showMusicCodeField && (
               <label className="block">
-                <span className="eyebrow block mb-2">Invitation code</span>
+                <span className="eyebrow block mb-2">
+                  {language === "en" ? "Invitation code" : "Κωδικός πρόσκλησης"}
+                </span>
                 <input
                   name="code"
                   value={manualCode}
@@ -393,21 +509,35 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
                   <div className="space-y-3">
                     <p>
                       {blockReason === "maybe"
-                        ? "When you are ready, update your RSVP to accept and the music form will unlock straight away."
-                        : "Please RSVP first. If you are joining us, the music form will unlock straight away."}
+                        ? language === "en"
+                          ? "When you are ready, update your RSVP to accept and the music form will unlock straight away."
+                          : "Όταν είστε έτοιμοι, αλλάξτε την απάντησή σας σε «θα έρθω» και η φόρμα για τραγούδια θα ανοίξει αμέσως."
+                        : language === "en"
+                          ? "Please RSVP first. If you are joining us, the music form will unlock straight away."
+                          : "Παρακαλούμε απαντήστε πρώτα στο RSVP. Αν θα είστε μαζί μας, η φόρμα για τραγούδια θα ανοίξει αμέσως."}
                     </p>
                     <a
                       href="#rsvp"
                       className="inline-flex items-center justify-center border border-olive/40 px-4 py-2 text-xs tracking-[0.15em] uppercase text-olive hover:bg-olive/5 transition"
                     >
-                      {blockReason === "maybe" ? "Update RSVP" : "Go to RSVP"}
+                      {blockReason === "maybe"
+                        ? language === "en"
+                          ? "Update RSVP"
+                          : "Ενημέρωση RSVP"
+                        : language === "en"
+                          ? "Go to RSVP"
+                          : "Πηγαίνετε στο RSVP"}
                     </a>
                   </div>
                 ) : (
                   <p>
                     {blockReason === "not_attending"
-                      ? "If your plans change, please contact Petros directly and we can update your RSVP."
-                      : "Please check the code and try again after your attending RSVP has been submitted."}
+                      ? language === "en"
+                        ? "If your plans change, please contact Petros directly and we can update your RSVP."
+                        : "Αν αλλάξει κάτι, επικοινωνήστε απευθείας με τον Πέτρο για να ενημερώσουμε την απάντησή σας."
+                      : language === "en"
+                        ? "Please check the code and try again after your attending RSVP has been submitted."
+                        : "Ελέγξτε τον κωδικό και δοκιμάστε ξανά αφού απαντήσετε ότι θα έρθετε."}
                   </p>
                 )}
               </div>
@@ -417,7 +547,13 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
                 type="submit"
                 className="w-full bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
               >
-                {status === "validating" ? "Checking code..." : "Unlock music requests"}
+                {status === "validating"
+                  ? language === "en"
+                    ? "Checking code..."
+                    : "Έλεγχος κωδικού..."
+                  : language === "en"
+                    ? "Unlock music requests"
+                    : "Άνοιγμα φόρμας τραγουδιών"}
               </button>
             )}
           </form>
@@ -427,23 +563,34 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
           onSubmit={onSubmit}
           className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
         >
-          <p className="text-sm text-foreground/75">{musicUsageMessage(musicUsage)}</p>
+          <p className="text-sm text-foreground/75">{musicUsageMessage(musicUsage, language)}</p>
           {musicGuestName && (
             <p className="text-sm text-foreground/75">
-              Requesting as <span className="font-medium text-olive">{musicGuestName}</span>
+              {language === "en" ? "Requesting as" : "Θα σταλεί στο όνομα"}{" "}
+              <span className="font-medium text-olive">{musicGuestName}</span>
             </p>
           )}
           {musicUsage.left <= 0 ? (
             <div className="border border-olive/25 bg-olive/5 px-4 py-3 text-sm text-foreground/75">
-              You have reached the maximum of {musicUsage.limit} music requests for this invitation.
+              {language === "en"
+                ? `You have reached the maximum of ${musicUsage.limit} music requests for this invitation.`
+                : `Έχετε φτάσει το όριο των ${musicUsage.limit} τραγουδιών για αυτή την πρόσκληση.`}
             </div>
           ) : (
             <>
-              <Field name="song_title" label="Song title" />
-              <Field name="artist" label="Band / artist" />
+              <Field
+                name="song_title"
+                label={language === "en" ? "Song title" : "Τίτλος τραγουδιού"}
+              />
+              <Field
+                name="artist"
+                label={language === "en" ? "Band / artist" : "Καλλιτέχνης / συγκρότημα"}
+              />
             </>
           )}
-          {songRequests.length > 0 && <SongRequestList requests={songRequests} />}
+          {songRequests.length > 0 && (
+            <SongRequestList requests={songRequests} language={language} />
+          )}
           {musicUsage.left > 0 && (
             <button
               type="submit"
@@ -451,7 +598,13 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
               className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
             >
               <Music size={16} />
-              {submitting ? "Adding..." : "Add to playlist"}
+              {submitting
+                ? language === "en"
+                  ? "Adding..."
+                  : "Προσθήκη..."
+                : language === "en"
+                  ? "Add to playlist"
+                  : "Προσθήκη στη λίστα"}
             </button>
           )}
         </form>
@@ -460,10 +613,18 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
   );
 }
 
-function SongRequestList({ requests }: { requests: SubmittedSongRequest[] }) {
+function SongRequestList({
+  requests,
+  language,
+}: {
+  requests: SubmittedSongRequest[];
+  language: Language;
+}) {
   return (
     <section className="border border-olive/15 bg-olive/5 px-4 py-4">
-      <h3 className="eyebrow mb-3">Your music requests</h3>
+      <h3 className="eyebrow mb-3">
+        {language === "en" ? "Your music requests" : "Οι μουσικές προτάσεις σας"}
+      </h3>
       <ul className="space-y-2">
         {requests.map((request, index) => (
           <li
@@ -475,7 +636,7 @@ function SongRequestList({ requests }: { requests: SubmittedSongRequest[] }) {
             </span>
             <span>
               <span className="font-medium text-olive">{request.songTitle}</span>
-              <span className="text-foreground/60"> by </span>
+              <span className="text-foreground/60"> {language === "en" ? "by" : "από"} </span>
               <span>{request.artist}</span>
             </span>
           </li>
@@ -494,6 +655,7 @@ const giftOptions: Array<{ value: GiftRegion; label: string }> = [
 ];
 
 function GiftsSection({ inviteCode }: { inviteCode: string }) {
+  const { language, translateValidation } = useLanguage();
   const [selectedRegion, setSelectedRegion] = useState<GiftRegion | null>(null);
   const [manualCode, setManualCode] = useState(inviteCode);
   const [status, setStatus] = useState<GiftRevealStatus>("idle");
@@ -513,7 +675,11 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
     event.preventDefault();
 
     if (!selectedRegion) {
-      toast.error("Choose UK/GBP or Greece/EURO first.");
+      toast.error(
+        language === "en"
+          ? "Choose UK/GBP or Greece/EURO first."
+          : "Επιλέξτε πρώτα UK/GBP ή Ελλάδα/EURO.",
+      );
       return;
     }
 
@@ -523,7 +689,9 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
       setStatus("invalid");
       setRevealedDetails(null);
       setCopiedGiftField(null);
-      toast.error(parsed.error.issues[0]?.message ?? "Enter a valid invitation code.");
+      toast.error(
+        translateValidation(parsed.error.issues[0]?.message ?? "Enter a valid invitation code."),
+      );
       return;
     }
 
@@ -542,7 +710,11 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
     } catch (error) {
       console.error(error);
       setStatus("invalid");
-      toast.error("Could not reveal those details. Please check your invitation code.");
+      toast.error(
+        language === "en"
+          ? "Could not reveal those details. Please check your invitation code."
+          : "Δεν μπορέσαμε να εμφανίσουμε τα στοιχεία. Ελέγξτε τον κωδικό της πρόσκλησης.",
+      );
     }
   }
 
@@ -562,7 +734,9 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
       }, 1800);
     } catch (error) {
       console.error(error);
-      toast.error("Could not copy that field.");
+      toast.error(
+        language === "en" ? "Could not copy that field." : "Δεν μπορέσαμε να το αντιγράψουμε.",
+      );
     }
   }
 
@@ -570,20 +744,31 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
     <PageShell
       id="gifts"
       theme="gifts"
-      eyebrow="With Love"
-      title="A little note on gifts"
-      subtitle="Your presence at our wedding is the greatest gift of all."
+      eyebrow={language === "en" ? "With Love" : "Με αγάπη"}
+      title={language === "en" ? "A little note on gifts" : "Λίγα λόγια για τα δώρα"}
+      subtitle={
+        language === "en"
+          ? "Your presence at our wedding is the greatest gift of all."
+          : "Η παρουσία σας στον γάμο μας είναι το μεγαλύτερο δώρο."
+      }
     >
       <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-10 md:p-14 text-center max-w-2xl mx-auto mt-6">
         <Heart size={28} className="mx-auto text-coral" strokeWidth={1.5} />
         <p className="display-italic text-2xl md:text-3xl text-olive mt-6 leading-relaxed">
-          If you wish to honour us with a gift, a contribution towards our future honeymoon would
-          mean a lot
+          {language === "en"
+            ? "If you wish to honour us with a gift, a contribution towards our future honeymoon would mean a lot"
+            : "Αν θέλετε να μας κάνετε ένα δώρο, μια συνεισφορά για το ταξίδι του μέλιτος θα σήμαινε πολλά για εμάς"}
         </p>
         <form onSubmit={onReveal} className="mt-12 space-y-6" noValidate>
-          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Gift currency">
+          <div
+            className="grid gap-3 sm:grid-cols-2"
+            role="radiogroup"
+            aria-label={language === "en" ? "Gift currency" : "Επιλογή χώρας και νομίσματος"}
+          >
             {giftOptions.map((option) => {
               const selected = selectedRegion === option.value;
+              const label =
+                language === "el" && option.value === "greece" ? "Ελλάδα/EURO" : option.label;
 
               return (
                 <button
@@ -598,7 +783,7 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                       : "border-olive/30 text-olive hover:bg-olive/5"
                   }`}
                 >
-                  {option.label}
+                  {label}
                 </button>
               );
             })}
@@ -607,7 +792,9 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
           {selectedRegion && (
             <div className="space-y-5">
               <label className="block text-left">
-                <span className="eyebrow block mb-2">Invitation code</span>
+                <span className="eyebrow block mb-2">
+                  {language === "en" ? "Invitation code" : "Κωδικός πρόσκλησης"}
+                </span>
                 <input
                   name="gift-code"
                   value={manualCode}
@@ -631,7 +818,9 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                   className="border border-coral/25 bg-coral/5 px-4 py-3 text-sm text-foreground/75"
                   role="alert"
                 >
-                  Please check the code from your invitation and try again.
+                  {language === "en"
+                    ? "Please check the code from your invitation and try again."
+                    : "Ελέγξτε τον κωδικό από την πρόσκλησή σας και δοκιμάστε ξανά."}
                 </div>
               )}
 
@@ -641,7 +830,13 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                 className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
               >
                 {status === "revealing" ? <LockKeyhole size={16} /> : <Eye size={16} />}
-                {status === "revealing" ? "Checking code..." : "Click to Reveal"}
+                {status === "revealing"
+                  ? language === "en"
+                    ? "Checking code..."
+                    : "Έλεγχος κωδικού..."
+                  : language === "en"
+                    ? "Click to Reveal"
+                    : "Εμφάνιση στοιχείων"}
               </button>
             </div>
           )}
@@ -652,28 +847,28 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
             {revealedDetails.region === "uk" ? (
               <dl className="space-y-4">
                 <CopyableGiftField
-                  label="Account name"
+                  label={language === "en" ? "Account name" : "Όνομα λογαριασμού"}
                   value={revealedDetails.bankDetails.accountName}
                   fieldId="accountName"
                   copiedField={copiedGiftField}
                   onCopy={copyGiftField}
                 />
                 <CopyableGiftField
-                  label="Sort code"
+                  label={language === "en" ? "Sort code" : "Sort code"}
                   value={revealedDetails.bankDetails.sortCode}
                   fieldId="sortCode"
                   copiedField={copiedGiftField}
                   onCopy={copyGiftField}
                 />
                 <CopyableGiftField
-                  label="Account number"
+                  label={language === "en" ? "Account number" : "Αριθμός λογαριασμού"}
                   value={revealedDetails.bankDetails.accountNumber}
                   fieldId="accountNumber"
                   copiedField={copiedGiftField}
                   onCopy={copyGiftField}
                 />
                 <CopyableGiftField
-                  label="Reference"
+                  label={language === "en" ? "Reference" : "Αιτιολογία / μήνυμα"}
                   value={revealedDetails.bankDetails.reference}
                   fieldId="reference"
                   copiedField={copiedGiftField}
@@ -682,7 +877,9 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
               </dl>
             ) : (
               <p className="display-serif text-2xl text-olive text-center">
-                {revealedDetails.message}
+                {language === "en"
+                  ? revealedDetails.message
+                  : "Θα προστεθούν περισσότερες λεπτομέρειες σύντομα"}
               </p>
             )}
           </div>
@@ -706,6 +903,7 @@ function CopyableGiftField({
   onCopy: (field: string, value: string) => void;
 }) {
   const copied = copiedField === fieldId;
+  const { language } = useLanguage();
 
   return (
     <div className="flex items-start justify-between gap-4 border-b border-olive/15 pb-4 last:border-b-0 last:pb-0">
@@ -716,7 +914,7 @@ function CopyableGiftField({
       <button
         type="button"
         onClick={() => onCopy(fieldId, value)}
-        aria-label={`Copy ${label}`}
+        aria-label={`${language === "en" ? "Copy" : "Αντιγραφή"} ${label}`}
         className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center border border-olive/30 text-olive transition hover:bg-olive/5"
       >
         {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -728,56 +926,121 @@ function CopyableGiftField({
 /* ---------------- FAQ ---------------- */
 const faqs = [
   {
-    q: "When should I RSVP by?",
-    a: ["Please RSVP by 15th June 2026 so we can finalise numbers with our venues."],
+    q: {
+      en: "When should I RSVP by?",
+      el: "Μέχρι πότε πρέπει να απαντήσω στο RSVP;",
+    },
+    a: {
+      en: ["Please RSVP by 15th June 2026 so we can finalise numbers with our venues."],
+      el: [
+        "Παρακαλούμε απαντήστε έως τις 15 Ιουνίου 2026, για να κλείσουμε τον τελικό αριθμό ατόμων με τους χώρους.",
+      ],
+    },
   },
   {
-    q: "Can I bring a plus-one?",
-    a: [
-      "Of course! Please add their details and RSVP on their behalf using the “Add guests” button.",
-      "The same applies for families: please RSVP for your whole group in this way.",
-    ],
+    q: {
+      en: "Can I bring a plus-one?",
+      el: "Μπορώ να φέρω συνοδό;",
+    },
+    a: {
+      en: [
+        "Of course! Please add their details and RSVP on their behalf using the “Add guests” button.",
+        "The same applies for families: please RSVP for your whole group in this way.",
+      ],
+      el: [
+        "Φυσικά! Προσθέστε τα στοιχεία τους και απαντήστε εκ μέρους τους με το κουμπί «Προσθήκη καλεσμένου».",
+        "Το ίδιο ισχύει και για οικογένειες: απαντήστε με τον ίδιο τρόπο για όλη την παρέα ή οικογένειά σας.",
+      ],
+    },
   },
   {
-    q: "Are children welcome?",
-    a: [
-      "Of course! Please include each child’s age in the RSVP section, as this will help the venue accommodate your needs.",
-    ],
+    q: {
+      en: "Are children welcome?",
+      el: "Είναι ευπρόσδεκτα τα παιδιά;",
+    },
+    a: {
+      en: [
+        "Of course! Please include each child’s age in the RSVP section, as this will help the venue accommodate your needs.",
+      ],
+      el: [
+        "Φυσικά! Γράψτε την ηλικία κάθε παιδιού στο RSVP, για να μπορέσει ο χώρος να σας εξυπηρετήσει καλύτερα.",
+      ],
+    },
   },
   {
-    q: "What time should I arrive?",
-    a: ["Please arrive at the church at 19:15, as the ceremony will begin at 19:30."],
+    q: {
+      en: "What time should I arrive?",
+      el: "Τι ώρα πρέπει να φτάσω;",
+    },
+    a: {
+      en: ["Please arrive at the church at 19:15, as the ceremony will begin at 19:30."],
+      el: [
+        "Παρακαλούμε να φτάσετε στην εκκλησία στις 19:15, καθώς η τελετή θα ξεκινήσει στις 19:30.",
+      ],
+    },
   },
   {
-    q: "What is the dress code?",
-    a: [
-      "There is no dress code. Wear whatever you like :) It will be hot, so please keep this in mind.",
-    ],
+    q: {
+      en: "What is the dress code?",
+      el: "Υπάρχει dress code;",
+    },
+    a: {
+      en: [
+        "There is no dress code. Wear whatever you like :) It will be hot, so please keep this in mind.",
+      ],
+      el: [
+        "Δεν υπάρχει dress code. Φορέστε ό,τι σας αρέσει :) Θα έχει ζέστη, οπότε έχετε το υπόψη.",
+      ],
+    },
   },
   {
-    q: "Where should I stay?",
-    a: [
-      "For guests who want to get around by car, or stay somewhere by the sea, the coastline south of Glyfada is beautiful.",
-      "Some guests may prefer to stay in central Athens to make the most of sightseeing and experience the hustle and bustle of the city. From there, getting around by public transport and taxi is very feasible. Glyfada is connected to the centre by tram and is also very accessible by taxi.",
-    ],
+    q: {
+      en: "Where should I stay?",
+      el: "Πού να μείνω;",
+    },
+    a: {
+      en: [
+        "For guests who want to get around by car, or stay somewhere by the sea, the coastline south of Glyfada is beautiful.",
+        "Some guests may prefer to stay in central Athens to make the most of sightseeing and experience the hustle and bustle of the city. From there, getting around by public transport and taxi is very feasible. Glyfada is connected to the centre by tram and is also very accessible by taxi.",
+      ],
+      el: [
+        "Αν θα μετακινείστε με αυτοκίνητο ή θέλετε να μείνετε κοντά στη θάλασσα, η ακτογραμμή νότια της Γλυφάδας είναι πολύ όμορφη.",
+        "Άλλοι ίσως προτιμήσουν το κέντρο της Αθήνας για βόλτες, αξιοθέατα και τον ρυθμό της πόλης. Από εκεί, οι μετακινήσεις με μέσα μαζικής μεταφοράς και ταξί είναι αρκετά εύκολες. Η Γλυφάδα συνδέεται με το κέντρο με τραμ και είναι επίσης εύκολα προσβάσιμη με ταξί.",
+      ],
+    },
   },
   {
-    q: "How do I get between the venues?",
-    a: [
-      "By car or taxi. The reception venue is around a 20-minute drive from the church.",
-      "Many guests will be bringing cars. If you do not have a car or a guaranteed ride, please let either Petro or Nikki know directly and we can find a solution based on numbers :)",
-    ],
+    q: {
+      en: "How do I get between the venues?",
+      el: "Πώς μετακινούμαι ανάμεσα στους χώρους;",
+    },
+    a: {
+      en: [
+        "By car or taxi. The reception venue is around a 20-minute drive from the church.",
+        "Many guests will be bringing cars. If you do not have a car or a guaranteed ride, please let either Petro or Nikki know directly and we can find a solution based on numbers :)",
+      ],
+      el: [
+        "Με αυτοκίνητο ή ταξί. Ο χώρος της δεξίωσης είναι περίπου 20 λεπτά με το αυτοκίνητο από την εκκλησία.",
+        "Πολλοί καλεσμένοι θα έχουν αυτοκίνητο. Αν δεν έχετε δικό σας ή σίγουρη μεταφορά, ενημερώστε απευθείας τον Πέτρο ή τη Nikki και θα βρούμε λύση :)",
+      ],
+    },
   },
 ];
 
 function FaqSection() {
+  const { language } = useLanguage();
+
   return (
     <PageShell
       id="faq"
       theme="faq"
-      eyebrow="Good to Know"
-      title="FAQs"
-      subtitle="Everything you might be wondering about our day."
+      eyebrow={language === "en" ? "Good to Know" : "Χρήσιμες πληροφορίες"}
+      title={language === "en" ? "FAQs" : "Συχνές Ερωτήσεις"}
+      subtitle={
+        language === "en"
+          ? "Everything you might be wondering about our day."
+          : "Όλα όσα μπορεί να αναρωτιέστε για την ημέρα μας."
+      }
     >
       <Accordion
         type="single"
@@ -787,10 +1050,10 @@ function FaqSection() {
         {faqs.map((f, i) => (
           <AccordionItem key={i} value={`q-${i}`} className="border-olive/15">
             <AccordionTrigger className="text-left display-serif text-xl text-olive hover:no-underline py-5">
-              {f.q}
+              {f.q[language]}
             </AccordionTrigger>
             <AccordionContent className="space-y-3 text-foreground/75 leading-relaxed pb-5">
-              {f.a.map((paragraph) => (
+              {f.a[language].map((paragraph) => (
                 <p key={paragraph}>{paragraph}</p>
               ))}
             </AccordionContent>

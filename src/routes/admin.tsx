@@ -59,6 +59,7 @@ type AdminState = "checking" | "logged_out" | "denied" | "admin";
 type InviteStatus = "unused" | "used" | "disabled";
 type BulkAction = "disable" | "delete";
 type UsedDeleteIntent = { codes: string[]; bulk: boolean };
+type InvitationLanguage = "el" | "en";
 
 export const Route = createFileRoute("/admin")({
   component: AdminRoute,
@@ -104,15 +105,20 @@ function getBasePath() {
   return basePath.endsWith("/") ? basePath : `${basePath}/`;
 }
 
-function makeInvitationUrl(code: string) {
+function makeInvitationUrl(code: string, language?: InvitationLanguage) {
   const invitationPath = `${getBasePath()}invitation`;
+  const params = new URLSearchParams({ code });
+
+  if (language) {
+    params.set("lang", language);
+  }
 
   if (typeof window === "undefined") {
-    return `${invitationPath}?code=${encodeURIComponent(code)}`;
+    return `${invitationPath}?${params.toString()}`;
   }
 
   const url = new URL(invitationPath, window.location.origin);
-  url.searchParams.set("code", code);
+  url.search = params.toString();
 
   return url.toString();
 }
@@ -127,8 +133,8 @@ function makeAdminUrl() {
   return new URL(adminPath, window.location.origin).toString();
 }
 
-async function copyInvitationUrl(code: string) {
-  await navigator.clipboard.writeText(makeInvitationUrl(code));
+async function copyInvitationUrl(code: string, language?: InvitationLanguage) {
+  await navigator.clipboard.writeText(makeInvitationUrl(code, language));
 }
 
 function StatusBadge({ status }: { status: InviteStatus }) {
@@ -372,8 +378,7 @@ function AdminRoute() {
     setAdminState("logged_out");
   }
 
-  async function onGenerateInvite(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function onGenerateInvite(language: InvitationLanguage) {
     setGenerating(true);
 
     try {
@@ -386,8 +391,10 @@ function AdminRoute() {
       setNotes("");
       if (response.ok) {
         try {
-          await copyInvitationUrl(response.code);
-          toast.success("Invitation code generated and URL copied.");
+          await copyInvitationUrl(response.code, language);
+          toast.success(
+            `Invitation code generated and ${language === "el" ? "Greek" : "English"} URL copied.`,
+          );
         } catch (error) {
           console.error(error);
           toast.success("Invitation code generated.");
@@ -667,7 +674,10 @@ function AdminRoute() {
             <CardDescription>Create a unique invite code.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={onGenerateInvite} className="grid gap-4 md:grid-cols-[1fr_auto]">
+            <form
+              onSubmit={(event) => event.preventDefault()}
+              className="grid gap-4 md:grid-cols-[1fr_auto]"
+            >
               <div className="space-y-2">
                 <Label htmlFor="invite-notes">Notes</Label>
                 <Textarea
@@ -678,11 +688,28 @@ function AdminRoute() {
                   maxLength={1000}
                 />
               </div>
-              <div className="flex items-end">
-                <Button type="submit" disabled={generating}>
-                  {generating ? <Loader2 className="animate-spin" /> : <Plus />}
-                  Generate code
-                </Button>
+              <div className="flex flex-col justify-end gap-2">
+                <p className="text-sm font-medium text-foreground">Generate code</p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={generating}
+                    onClick={() => void onGenerateInvite("el")}
+                  >
+                    {generating ? <Loader2 className="animate-spin" /> : <Plus />}
+                    ΕΛ
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={generating}
+                    onClick={() => void onGenerateInvite("en")}
+                  >
+                    {generating ? <Loader2 className="animate-spin" /> : <Plus />}
+                    EN
+                  </Button>
+                </div>
               </div>
             </form>
           </CardContent>
