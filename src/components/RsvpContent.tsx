@@ -101,7 +101,7 @@ const rsvpCopy = {
   en: {
     pageEyebrow: "Kindly Respond",
     pageTitle: "RSVP",
-    pageSubtitle: "Enter your invitation code to respond by 15th June 2026.",
+    pageSubtitle: "Please aim to respond by 15th June 2026.",
     checkError: "We could not check your invitation code. Please try again.",
     codeFallback: "Enter a valid invitation code.",
     formFallback: "Please check the form.",
@@ -114,7 +114,7 @@ const rsvpCopy = {
   el: {
     pageEyebrow: "Παρακαλούμε απαντήστε",
     pageTitle: "RSVP",
-    pageSubtitle: "Βάλτε τον κωδικό της πρόσκλησης για να απαντήσετε έως τις 15 Ιουνίου 2026.",
+    pageSubtitle: "Παρακαλούμε απαντήστε μέχρι τις 15 Ιουνίου 2026.",
     checkError: "Δεν μπορέσαμε να ελέγξουμε τον κωδικό πρόσκλησης. Δοκιμάστε ξανά.",
     codeFallback: "Βάλτε έναν έγκυρο κωδικό πρόσκλησης.",
     formFallback: "Ελέγξτε λίγο τη φόρμα.",
@@ -212,7 +212,13 @@ function getFieldErrors(error: {
   }, {});
 }
 
-export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: string }) {
+export function RsvpContent({
+  initialCodeFromUrl = "",
+  onRsvpSubmitted,
+}: {
+  initialCodeFromUrl?: string;
+  onRsvpSubmitted?: (code: string) => void;
+}) {
   const { language, translateValidation } = useLanguage();
   const copy = rsvpCopy[language];
   const initialCode = useMemo(() => normalizeCode(initialCodeFromUrl ?? ""), [initialCodeFromUrl]);
@@ -405,6 +411,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
 
       setStatus("success");
       toast.success(copy.sentToast);
+      onRsvpSubmitted?.(parsed.data.code);
       form.reset();
       setAdditionalGuests([]);
     } catch (error) {

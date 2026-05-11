@@ -35,13 +35,25 @@ export const Route = createFileRoute("/")({
 function Index() {
   const search = Route.useSearch();
   const inviteCode = useMemo(() => (search.code ?? "").trim().toLowerCase(), [search.code]);
+  const [musicInviteCode, setMusicInviteCode] = useState(inviteCode);
+  const [musicRefreshKey, setMusicRefreshKey] = useState(0);
+
+  useEffect(() => {
+    setMusicInviteCode(inviteCode);
+  }, [inviteCode]);
 
   return (
     <div className="relative overflow-hidden">
       <Hero />
       <EventsSection />
-      <RsvpContent initialCodeFromUrl={inviteCode} />
-      <MusicSection inviteCode={inviteCode} />
+      <RsvpContent
+        initialCodeFromUrl={inviteCode}
+        onRsvpSubmitted={(submittedCode) => {
+          setMusicInviteCode(submittedCode);
+          setMusicRefreshKey((current) => current + 1);
+        }}
+      />
+      <MusicSection inviteCode={musicInviteCode} refreshKey={musicRefreshKey} />
       <GiftsSection inviteCode={inviteCode} />
       <FaqSection />
     </div>
@@ -306,7 +318,7 @@ function musicUsageMessage(usage: MusicRequestUsage, language: Language) {
   return `You have already submitted ${usage.submitted} music ${requestLabel}. You have ${usage.left} ${leftLabel} left.`;
 }
 
-function MusicSection({ inviteCode }: { inviteCode: string }) {
+function MusicSection({ inviteCode, refreshKey }: { inviteCode: string; refreshKey: number }) {
   const { language, translateValidation } = useLanguage();
   const [status, setStatus] = useState<"idle" | "validating" | "ready" | "invalid">(
     inviteCodeSchema.safeParse(inviteCode).success ? "validating" : "idle",
@@ -459,7 +471,7 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     // validateCode intentionally stays outside the dependency list so changing
     // language does not re-run invite validation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inviteCode]);
+  }, [inviteCode, refreshKey]);
 
   const blockCopy = musicBlockCopy[language][blockReason];
   const showMusicCodeField =

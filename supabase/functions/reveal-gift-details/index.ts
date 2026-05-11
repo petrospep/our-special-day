@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
         accountName: "NIKKI GEORGIADOU",
         sortCode: "11-67-22",
         accountNumber: "34207560",
-        reference: "Please leave a reference or we won't know who to thank",
+        reference: "Please leave a reference or we won't know who to thank :)",
       },
     }),
     req,
