@@ -144,7 +144,7 @@ type MusicRequestUsage = {
   limit: number;
 };
 
-type MusicBlockReason = "invalid_code" | "rsvp_required" | "not_attending";
+type MusicBlockReason = "invalid_code" | "rsvp_required" | "maybe" | "not_attending";
 
 const musicBlockCopy: Record<MusicBlockReason, { title: string; message: string }> = {
   invalid_code: {
@@ -156,9 +156,14 @@ const musicBlockCopy: Record<MusicBlockReason, { title: string; message: string 
     message:
       "Music requests open after you submit an attending RSVP. Once that is done, we will use your RSVP name automatically here.",
   },
+  maybe: {
+    title: "Please confirm first",
+    message: "Once you confirm that you are joining us, you will be able to request music.",
+  },
   not_attending: {
-    title: "Thanks for letting us know",
-    message: "Music requests are available for guests joining us at the wedding.",
+    title: "We will miss you on the dance floor",
+    message:
+      "We are sorry you cannot make it. Music requests are for guests joining us on the day, but please let us know if your plans change.",
   },
 };
 
@@ -228,9 +233,11 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
         setBlockReason(
           validation.reason === "rsvp_required"
             ? "rsvp_required"
-            : validation.reason === "not_attending"
-              ? "not_attending"
-              : "invalid_code",
+            : validation.reason === "maybe"
+              ? "maybe"
+              : validation.reason === "not_attending"
+                ? "not_attending"
+                : "invalid_code",
         );
       }
       setStatus("invalid");
@@ -293,6 +300,9 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
       } else if (error instanceof Error && error.message === "rsvp_required") {
         setStatus("invalid");
         setBlockReason("rsvp_required");
+      } else if (error instanceof Error && error.message === "maybe") {
+        setStatus("invalid");
+        setBlockReason("maybe");
       } else if (error instanceof Error && error.message === "not_attending") {
         setStatus("invalid");
         setBlockReason("not_attending");
@@ -312,7 +322,8 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
   }, [inviteCode]);
 
   const blockCopy = musicBlockCopy[blockReason];
-  const showMusicCodeField = status !== "invalid" || blockReason !== "rsvp_required";
+  const showMusicCodeField =
+    status !== "invalid" || !["rsvp_required", "maybe", "not_attending"].includes(blockReason);
 
   return (
     <PageShell
@@ -354,23 +365,24 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
                 }`}
                 role="alert"
               >
-                {blockReason === "rsvp_required" ? (
+                {blockReason === "rsvp_required" || blockReason === "maybe" ? (
                   <div className="space-y-3">
                     <p>
-                      Please RSVP first. If you are joining us, the music form will unlock straight
-                      away.
+                      {blockReason === "maybe"
+                        ? "When you are ready, update your RSVP to accept and the music form will unlock straight away."
+                        : "Please RSVP first. If you are joining us, the music form will unlock straight away."}
                     </p>
                     <a
                       href="#rsvp"
                       className="inline-flex items-center justify-center border border-olive/40 px-4 py-2 text-xs tracking-[0.15em] uppercase text-olive hover:bg-olive/5 transition"
                     >
-                      Go to RSVP
+                      {blockReason === "maybe" ? "Update RSVP" : "Go to RSVP"}
                     </a>
                   </div>
                 ) : (
                   <p>
                     {blockReason === "not_attending"
-                      ? "This invitation is marked as not attending, so music requests are closed for this code."
+                      ? "If your plans change, please contact Petros directly and we can update your RSVP."
                       : "Please check the code and try again after your attending RSVP has been submitted."}
                   </p>
                 )}

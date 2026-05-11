@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageShell } from "@/components/PageShell";
 import { callFunction } from "@/lib/functions";
 import type {
+  AttendanceStatus,
   InviteCodeStatus,
   SubmittedRsvpResponse,
   SubmitRsvpResponse,
@@ -24,6 +25,13 @@ type RsvpStatus =
 type InvalidReason = Exclude<InviteCodeStatus, "valid"> | "invalid_format";
 type FieldErrors = Partial<Record<string, string>>;
 type GuestFormValue = { firstName: string; lastName: string; under13: boolean; age: string };
+type AttendanceChoice = "yes" | "no" | "maybe";
+type RsvpFormDefaults = {
+  submitterFirstName: string;
+  submitterLastName: string;
+  email: string;
+  phoneNumber: string;
+};
 
 const invalidCopy: Record<InvalidReason, { title: string; message: string; action: string }> = {
   missing_code: {
@@ -70,6 +78,61 @@ function formatSubmittedAt(value: string) {
   }).format(date);
 }
 
+function attendanceStatusToChoice(status: AttendanceStatus): AttendanceChoice {
+  if (status === "attending") {
+    return "yes";
+  }
+
+  if (status === "declined") {
+    return "no";
+  }
+
+  return "maybe";
+}
+
+function attendanceChoiceToStatus(choice: FormDataEntryValue | null) {
+  if (choice === "yes") {
+    return "attending" satisfies AttendanceStatus;
+  }
+
+  if (choice === "no") {
+    return "declined" satisfies AttendanceStatus;
+  }
+
+  if (choice === "maybe") {
+    return "maybe" satisfies AttendanceStatus;
+  }
+
+  return undefined;
+}
+
+function getResponseAttendanceStatus(response: SubmittedRsvpResponse): AttendanceStatus {
+  return response.attendanceStatus ?? (response.attending ? "attending" : "declined");
+}
+
+function defaultsFromRsvp(response: SubmittedRsvpResponse): RsvpFormDefaults {
+  const submitter = response.guests.find((guest) => guest.isSubmitter);
+  const nameParts = response.fullName.trim().split(/\s+/);
+
+  return {
+    submitterFirstName: submitter?.firstName ?? nameParts[0] ?? "",
+    submitterLastName: submitter?.lastName ?? nameParts.slice(1).join(" "),
+    email: response.email ?? "",
+    phoneNumber: response.phoneNumber ?? "",
+  };
+}
+
+function guestsFromRsvp(response: SubmittedRsvpResponse): GuestFormValue[] {
+  return response.guests
+    .filter((guest) => !guest.isSubmitter)
+    .map((guest) => ({
+      firstName: guest.firstName,
+      lastName: guest.lastName,
+      under13: guest.under13,
+      age: guest.age === null ? "" : String(guest.age),
+    }));
+}
+
 function getFieldErrors(error: {
   issues: Array<{ path: Array<string | number>; message: string }>;
 }) {
@@ -92,9 +155,10 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
   const [invalidReason, setInvalidReason] = useState<InvalidReason>("missing_code");
   const [codeError, setCodeError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FieldErrors>({});
-  const [attending, setAttending] = useState<"yes" | "no" | null>(null);
+  const [attending, setAttending] = useState<AttendanceChoice | null>(null);
   const [additionalGuests, setAdditionalGuests] = useState<GuestFormValue[]>([]);
   const [submittedRsvp, setSubmittedRsvp] = useState<SubmittedRsvpResponse | null>(null);
+  const [formDefaults, setFormDefaults] = useState<RsvpFormDefaults | null>(null);
   const activeValidation = useRef(0);
   const submitInFlight = useRef(false);
 
@@ -106,6 +170,9 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     setCode(normalizedCode);
     setCodeError(null);
     setSubmittedRsvp(null);
+    setFormDefaults(null);
+    setAttending(null);
+    setAdditionalGuests([]);
 
     if (!parsed.success) {
       setInvalidReason(rawCode.trim() ? "invalid_format" : "missing_code");
@@ -133,6 +200,17 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       }
 
       if (response.ok && !response.valid) {
+        if (response.reason === "maybe" && response.rsvpResponse) {
+          setSubmittedRsvp(response.rsvpResponse);
+          setFormDefaults(defaultsFromRsvp(response.rsvpResponse));
+          setAdditionalGuests(guestsFromRsvp(response.rsvpResponse));
+          setAttending(
+            attendanceStatusToChoice(getResponseAttendanceStatus(response.rsvpResponse)),
+          );
+          setStatus("ready");
+          return;
+        }
+
         if (response.reason === "used" && response.rsvpResponse) {
           setSubmittedRsvp(response.rsvpResponse);
           setStatus("submitted");
@@ -166,6 +244,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       setManualCode("");
       setCodeError(null);
       setSubmittedRsvp(null);
+      setFormDefaults(null);
       return;
     }
 
@@ -195,14 +274,14 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
 
     const form = event.currentTarget;
     const formData = new FormData(form);
-    const attendingValue = formData.get("attending");
+    const attendanceStatus = attendanceChoiceToStatus(formData.get("attending"));
     const parsed = rsvpFormSchema.safeParse({
       code,
       submitter: {
         firstName: formData.get("submitterFirstName"),
         lastName: formData.get("submitterLastName"),
       },
-      attending: attendingValue === "yes" ? true : attendingValue === "no" ? false : undefined,
+      attendanceStatus,
       email: formData.get("email"),
       phoneNumber: formData.get("phoneNumber"),
       guests: additionalGuests.map((guest) => ({
@@ -230,7 +309,8 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
           under13: false,
           age: null,
         },
-        attending: parsed.data.attending,
+        attending: parsed.data.attendanceStatus === "attending",
+        attendanceStatus: parsed.data.attendanceStatus,
         email: parsed.data.email ?? null,
         phoneNumber: parsed.data.phoneNumber ?? null,
         guests: parsed.data.guests.map((guest) => ({
@@ -317,6 +397,10 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
             <RsvpForm
               attending={attending}
               errors={formErrors}
+              defaults={formDefaults}
+              isMaybeUpdate={
+                submittedRsvp ? getResponseAttendanceStatus(submittedRsvp) === "maybe" : false
+              }
               submitting={status === "submitting"}
               onAttendingChange={setAttending}
               onSubmit={onRsvpSubmit}
@@ -472,6 +556,8 @@ function InvalidPanel({
 function RsvpForm({
   attending,
   errors,
+  defaults,
+  isMaybeUpdate,
   submitting,
   onAttendingChange,
   onSubmit,
@@ -480,11 +566,13 @@ function RsvpForm({
   onRemoveGuest,
   onGuestChange,
 }: {
-  attending: "yes" | "no" | null;
+  attending: AttendanceChoice | null;
   errors: FieldErrors;
+  defaults: RsvpFormDefaults | null;
+  isMaybeUpdate: boolean;
   submitting: boolean;
   additionalGuests: GuestFormValue[];
-  onAttendingChange: (value: "yes" | "no") => void;
+  onAttendingChange: (value: AttendanceChoice) => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onAddGuest: () => void;
   onRemoveGuest: (index: number) => void;
@@ -498,12 +586,19 @@ function RsvpForm({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
+      {isMaybeUpdate && (
+        <div className="border border-olive/20 bg-olive/5 p-4 text-sm text-foreground/75">
+          Your RSVP is currently marked as very likely. You can update it to accept or decline when
+          you know.
+        </div>
+      )}
       <fieldset>
         <div className="grid sm:grid-cols-2 gap-3">
           <Input
             name="submitterFirstName"
             label="First name"
             error={errors["submitter.firstName"]}
+            defaultValue={defaults?.submitterFirstName ?? ""}
             autoComplete="given-name"
             required
           />
@@ -511,6 +606,7 @@ function RsvpForm({
             name="submitterLastName"
             label="Last name"
             error={errors["submitter.lastName"]}
+            defaultValue={defaults?.submitterLastName ?? ""}
             autoComplete="family-name"
             required
           />
@@ -525,6 +621,7 @@ function RsvpForm({
             type="email"
             label="Email (optional)"
             error={errors.email}
+            defaultValue={defaults?.email ?? ""}
             autoComplete="email"
           />
           <Input
@@ -532,18 +629,19 @@ function RsvpForm({
             type="tel"
             label="Phone number (optional)"
             error={errors.phoneNumber}
+            defaultValue={defaults?.phoneNumber ?? ""}
             autoComplete="tel"
           />
         </div>
       </fieldset>
 
-      <fieldset aria-describedby={errors.attending ? "attending-error" : undefined}>
+      <fieldset aria-describedby={errors.attendanceStatus ? "attending-error" : undefined}>
         <legend className="eyebrow mb-3">Will you be attending?</legend>
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-3 gap-3">
           <RadioCard
             name="attending"
             value="yes"
-            label="Joyfully accept"
+            label="Accept"
             checked={attending === "yes"}
             onChange={() => onAttendingChange("yes")}
             required
@@ -551,15 +649,23 @@ function RsvpForm({
           <RadioCard
             name="attending"
             value="no"
-            label="Regretfully decline"
+            label="Decline"
             checked={attending === "no"}
             onChange={() => onAttendingChange("no")}
             required
           />
+          <RadioCard
+            name="attending"
+            value="maybe"
+            label="Very likely, will confirm soon"
+            checked={attending === "maybe"}
+            onChange={() => onAttendingChange("maybe")}
+            required
+          />
         </div>
-        {errors.attending && (
+        {errors.attendanceStatus && (
           <p id="attending-error" className="mt-2 text-sm text-destructive" role="alert">
-            {errors.attending}
+            {errors.attendanceStatus}
           </p>
         )}
       </fieldset>
@@ -634,14 +740,15 @@ function RsvpForm({
         className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
       >
         {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-        {submitting ? "Sending..." : "Send RSVP"}
+        {submitting ? "Sending..." : isMaybeUpdate ? "Update RSVP" : "Send RSVP"}
       </button>
     </form>
   );
 }
 
-function SuccessPanel({ attending }: { attending: "yes" | "no" | null }) {
-  const isAttending = attending !== "no";
+function SuccessPanel({ attending }: { attending: AttendanceChoice | null }) {
+  const isAttending = attending === "yes";
+  const isMaybe = attending === "maybe";
 
   return (
     <div className="text-center py-8">
@@ -649,16 +756,20 @@ function SuccessPanel({ attending }: { attending: "yes" | "no" | null }) {
         <Check className="h-6 w-6" aria-hidden />
       </div>
       <p className="display-serif text-4xl text-olive mt-6">
-        {isAttending ? "We can't wait" : "We'll miss you"}
+        {isMaybe ? "Thanks for letting us know" : isAttending ? "We can't wait" : "We'll miss you"}
       </p>
       <p className="mt-4 text-foreground/75">
-        {isAttending
-          ? "Your RSVP has been received. See you on 25 July in Athens."
-          : "Thank you for letting us know. We will be thinking of you."}
+        {isMaybe
+          ? "We have marked you as very likely. Use your invitation code again when you are ready to accept or decline."
+          : isAttending
+            ? "Your RSVP has been received. See you on 25 July in Athens."
+            : "Thank you for letting us know. We will be thinking of you."}
       </p>
-      <p className="mt-5 text-sm text-foreground/65">
-        If you need to change anything, please contact Petros directly.
-      </p>
+      {!isMaybe && (
+        <p className="mt-5 text-sm text-foreground/65">
+          If you need to change anything, please contact Petros directly.
+        </p>
+      )}
       <Heart className="mx-auto mt-8 h-6 w-6 text-coral" aria-hidden />
       <p className="display-italic text-3xl text-olive mt-3">P &amp; N</p>
     </div>
@@ -666,7 +777,13 @@ function SuccessPanel({ attending }: { attending: "yes" | "no" | null }) {
 }
 
 function SubmittedRsvpPanel({ rsvp }: { rsvp: SubmittedRsvpResponse }) {
-  const attendance = rsvp.attending ? "Attending" : "Not attending";
+  const attendanceStatus = getResponseAttendanceStatus(rsvp);
+  const attendance =
+    attendanceStatus === "attending"
+      ? "Attending"
+      : attendanceStatus === "maybe"
+        ? "Very likely"
+        : "Not attending";
 
   return (
     <div className="py-2">
@@ -852,14 +969,14 @@ function RadioCard({
   required,
 }: {
   name: string;
-  value: "yes" | "no";
+  value: AttendanceChoice;
   label: string;
   checked: boolean;
   onChange: () => void;
   required?: boolean;
 }) {
   return (
-    <label className="cursor-pointer">
+    <label className="h-full cursor-pointer">
       <input
         type="radio"
         name={name}
@@ -869,7 +986,7 @@ function RadioCard({
         required={required}
         className="peer sr-only"
       />
-      <span className="block text-center border border-olive/25 py-4 px-3 text-sm tracking-wide text-olive peer-checked:bg-olive peer-checked:text-cream peer-checked:border-olive transition">
+      <span className="flex min-h-16 h-full items-center justify-center text-center border border-olive/25 px-3 py-3 text-sm leading-snug tracking-wide text-olive peer-checked:bg-olive peer-checked:text-cream peer-checked:border-olive transition">
         {label}
       </span>
     </label>

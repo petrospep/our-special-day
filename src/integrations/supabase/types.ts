@@ -125,6 +125,7 @@ export type Database = {
       rsvp_responses: {
         Row: {
           attending: boolean;
+          attendance_status: "attending" | "declined" | "maybe";
           email: string | null;
           full_name: string;
           guest_count: number;
@@ -135,6 +136,7 @@ export type Database = {
         };
         Insert: {
           attending: boolean;
+          attendance_status?: "attending" | "declined" | "maybe";
           email?: string | null;
           full_name: string;
           guest_count?: number;
@@ -145,6 +147,7 @@ export type Database = {
         };
         Update: {
           attending?: boolean;
+          attendance_status?: "attending" | "declined" | "maybe";
           email?: string | null;
           full_name?: string;
           guest_count?: number;

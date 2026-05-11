@@ -10,6 +10,17 @@ type ValidateInviteBody = {
   requireAttendingRsvpForSongRequests?: unknown;
 };
 
+type RsvpResponseRow = {
+  id: string;
+  full_name: string;
+  attending: boolean;
+  attendance_status?: "attending" | "declined" | "maybe" | null;
+  guest_count: number;
+  email: string | null;
+  phone_number: string | null;
+  submitted_at: string;
+};
+
 function normalizeCode(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -27,6 +38,71 @@ function mapSongRequest(request: { song_title: string; artist: string; created_a
     songTitle: request.song_title,
     artist: request.artist,
     createdAt: request.created_at,
+  };
+}
+
+function mapAttendanceStatus(response: RsvpResponseRow) {
+  return response.attendance_status ?? (response.attending ? "attending" : "declined");
+}
+
+async function loadRsvpResponse(
+  supabaseAdmin: ReturnType<typeof createSupabaseAdminClient>,
+  code: string,
+) {
+  const { data: response, error: responseError } = await supabaseAdmin
+    .from("rsvp_responses")
+    .select(
+      "id, full_name, attending, attendance_status, guest_count, email, phone_number, submitted_at",
+    )
+    .eq("invite_code", code)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (responseError) {
+    return { response: null, guests: null, error: responseError };
+  }
+
+  if (!response) {
+    return { response: null, guests: null, error: null };
+  }
+
+  const { data: guests, error: guestsError } = await supabaseAdmin
+    .from("rsvp_guests")
+    .select("first_name, last_name, is_submitter, under_13, age, created_at")
+    .eq("rsvp_response_id", response.id)
+    .order("is_submitter", { ascending: false })
+    .order("created_at", { ascending: true });
+
+  return { response: response as RsvpResponseRow, guests, error: guestsError };
+}
+
+function rsvpResponsePayload(
+  response: RsvpResponseRow,
+  guests: Array<{
+    first_name: string;
+    last_name: string;
+    is_submitter: boolean;
+    under_13: boolean;
+    age: number | null;
+  }> | null,
+) {
+  return {
+    fullName: response.full_name,
+    attending: response.attending,
+    attendanceStatus: mapAttendanceStatus(response),
+    guestCount: response.guest_count,
+    email: response.email,
+    phoneNumber: response.phone_number,
+    submittedAt: response.submitted_at,
+    guests: (guests ?? []).map((guest) => ({
+      firstName: guest.first_name,
+      lastName: guest.last_name,
+      fullName: fullName(guest.first_name, guest.last_name),
+      isSubmitter: guest.is_submitter,
+      under13: guest.under_13,
+      age: guest.age,
+    })),
   };
 }
 
@@ -94,13 +170,7 @@ Deno.serve(async (req) => {
       return withCors(invalid("used"));
     }
 
-    const { data: response, error: responseError } = await supabaseAdmin
-      .from("rsvp_responses")
-      .select("id, full_name, attending, guest_count, email, phone_number, submitted_at")
-      .eq("invite_code", code)
-      .order("submitted_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const { response, guests, error: responseError } = await loadRsvpResponse(supabaseAdmin, code);
 
     if (responseError) {
       console.error(responseError);
@@ -112,42 +182,35 @@ Deno.serve(async (req) => {
       return withCors(invalid("used"));
     }
 
-    const { data: guests, error: guestsError } = await supabaseAdmin
-      .from("rsvp_guests")
-      .select("first_name, last_name, is_submitter, under_13, age, created_at")
-      .eq("rsvp_response_id", response.id)
-      .order("is_submitter", { ascending: false })
-      .order("created_at", { ascending: true });
-
-    if (guestsError) {
-      console.error(guestsError);
-
-      return withCors(json({ ok: false, error: "rsvp_response_lookup_failed" }, 500));
-    }
-
     return withCors(
       json({
         ok: true,
         valid: false,
         reason: "used",
-        rsvpResponse: {
-          fullName: response.full_name,
-          attending: response.attending,
-          guestCount: response.guest_count,
-          email: response.email,
-          phoneNumber: response.phone_number,
-          submittedAt: response.submitted_at,
-          guests: (guests ?? []).map((guest) => ({
-            firstName: guest.first_name,
-            lastName: guest.last_name,
-            fullName: fullName(guest.first_name, guest.last_name),
-            isSubmitter: guest.is_submitter,
-            under13: guest.under_13,
-            age: guest.age,
-          })),
-        },
+        rsvpResponse: rsvpResponsePayload(response, guests),
       }),
     );
+  }
+
+  if (includeRsvpResponse) {
+    const { response, guests, error: responseError } = await loadRsvpResponse(supabaseAdmin, code);
+
+    if (responseError) {
+      console.error(responseError);
+
+      return withCors(json({ ok: false, error: "rsvp_response_lookup_failed" }, 500));
+    }
+
+    if (response && mapAttendanceStatus(response) === "maybe") {
+      return withCors(
+        json({
+          ok: true,
+          valid: false,
+          reason: "maybe",
+          rsvpResponse: rsvpResponsePayload(response, guests),
+        }),
+      );
+    }
   }
 
   if (!includeSongRequestUsage) {
@@ -159,7 +222,7 @@ Deno.serve(async (req) => {
   if (requireAttendingRsvpForSongRequests) {
     const { data: response, error: responseError } = await supabaseAdmin
       .from("rsvp_responses")
-      .select("full_name, attending")
+      .select("full_name, attending, attendance_status")
       .eq("invite_code", code)
       .order("submitted_at", { ascending: false })
       .limit(1)
@@ -175,7 +238,13 @@ Deno.serve(async (req) => {
       return withCors(json({ ok: true, valid: false, reason: "rsvp_required" }));
     }
 
-    if (!response.attending) {
+    if (response.attendance_status === "maybe") {
+      return withCors(json({ ok: true, valid: false, reason: "maybe" }));
+    }
+
+    if (
+      response.attendance_status ? response.attendance_status !== "attending" : !response.attending
+    ) {
       return withCors(json({ ok: true, valid: false, reason: "not_attending" }));
     }
 

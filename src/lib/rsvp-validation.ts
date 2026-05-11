@@ -90,7 +90,7 @@ export const rsvpFormSchema = z.object({
   code: inviteCodeSchema,
   submitter: rsvpSubmitterSchema,
   guests: z.array(rsvpGuestSchema).max(9, "Guest count must be 10 or fewer."),
-  attending: z.boolean({
+  attendanceStatus: z.enum(["attending", "declined", "maybe"], {
     required_error: "Choose whether you will attend.",
     invalid_type_error: "Choose whether you will attend.",
   }),

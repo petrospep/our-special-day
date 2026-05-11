@@ -22,6 +22,7 @@ type SubmitRsvpBody = {
   code?: unknown;
   submitter?: GuestInput;
   attending?: unknown;
+  attendanceStatus?: unknown;
   email?: unknown;
   phoneNumber?: unknown;
   guests?: unknown;
@@ -41,6 +42,8 @@ type NormalizedGuest = {
   age: number | null;
 };
 
+type AttendanceStatus = "attending" | "declined" | "maybe";
+
 type RsvpEmailDetails = {
   code: string;
   submitterFirstName: string;
@@ -48,6 +51,7 @@ type RsvpEmailDetails = {
   submitterUnder13: boolean;
   submitterAge: number | null;
   attending: boolean;
+  attendanceStatus: AttendanceStatus;
   email: string | null;
   phoneNumber: string | null;
   guests: NormalizedGuest[];
@@ -106,6 +110,18 @@ function fullName(firstName: string, lastName: string) {
   return `${firstName} ${lastName}`.trim();
 }
 
+function normalizeAttendanceStatus(value: unknown, attending: unknown): AttendanceStatus | null {
+  if (value === "attending" || value === "declined" || value === "maybe") {
+    return value;
+  }
+
+  if (typeof attending === "boolean") {
+    return attending ? "attending" : "declined";
+  }
+
+  return null;
+}
+
 function guestLabel(guest: NormalizedGuest) {
   const name = fullName(guest.firstName, guest.lastName);
 
@@ -126,9 +142,12 @@ function htmlRow(label: string, value: string | null) {
 
 function buildGuestConfirmation(details: RsvpEmailDetails) {
   const submitterName = fullName(details.submitterFirstName, details.submitterLastName);
-  const attendingCopy = details.attending
-    ? "We have you marked as attending."
-    : "We have you marked as not attending.";
+  const attendingCopy =
+    details.attendanceStatus === "maybe"
+      ? "We have you marked as very likely and awaiting final confirmation."
+      : details.attending
+        ? "We have you marked as attending."
+        : "We have you marked as not attending.";
   const guestNames = details.guests.length
     ? details.guests.map(guestLabel).join(", ")
     : "No additional guests";
@@ -167,7 +186,12 @@ function buildOwnerNotification(details: RsvpEmailDetails) {
   const guestNames = details.guests.length
     ? details.guests.map(guestLabel).join(", ")
     : "No additional guests";
-  const attendance = details.attending ? "Attending" : "Not attending";
+  const attendance =
+    details.attendanceStatus === "maybe"
+      ? "Very likely"
+      : details.attending
+        ? "Attending"
+        : "Not attending";
 
   return {
     subject: `New RSVP: ${submitterName} - ${attendance}`,
@@ -288,6 +312,7 @@ Deno.serve(async (req) => {
   const code = normalizeCode(body?.code);
   const submitter = body?.submitter;
   const attending = body?.attending;
+  const attendanceStatus = normalizeAttendanceStatus(body?.attendanceStatus, attending);
   const email = trimOptionalString(body?.email);
   const phoneNumber = trimOptionalString(body?.phoneNumber);
   const guests = body?.guests;
@@ -310,7 +335,7 @@ Deno.serve(async (req) => {
         submitterAge > 12)) ||
     (submitterUnder13 && submitterAge === null) ||
     (!submitterUnder13 && submitterAge !== null) ||
-    typeof attending !== "boolean" ||
+    attendanceStatus === null ||
     email === undefined ||
     phoneNumber === undefined ||
     (email !== null &&
@@ -363,7 +388,8 @@ Deno.serve(async (req) => {
     p_submitter_last_name: submitterLastName,
     p_submitter_under_13: submitterUnder13,
     p_submitter_age: submitterAge,
-    p_attending: attending,
+    p_attending: attendanceStatus === "attending",
+    p_attendance_status: attendanceStatus,
     p_email: email,
     p_phone_number: phoneNumber,
     p_guests: normalizedGuests,
@@ -384,7 +410,8 @@ Deno.serve(async (req) => {
       submitterLastName,
       submitterUnder13,
       submitterAge,
-      attending,
+      attending: attendanceStatus === "attending",
+      attendanceStatus,
       email,
       phoneNumber,
       guests: normalizedGuests,

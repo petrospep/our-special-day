@@ -15,6 +15,7 @@ type SubmitSongRequestError =
   | "invalid_code"
   | "disabled_code"
   | "rsvp_required"
+  | "maybe"
   | "not_attending"
   | "song_request_limit_reached"
   | "invalid_input";
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
 
   const { data: rsvp, error: rsvpError } = await supabaseAdmin
     .from("rsvp_responses")
-    .select("full_name, attending")
+    .select("full_name, attending, attendance_status")
     .eq("invite_code", code)
     .order("submitted_at", { ascending: false })
     .limit(1)
@@ -129,7 +130,11 @@ Deno.serve(async (req) => {
     );
   }
 
-  if (!rsvp.attending) {
+  if (rsvp.attendance_status === "maybe") {
+    return withCors(json({ ok: false, error: "maybe" satisfies SubmitSongRequestError }), req);
+  }
+
+  if (rsvp.attendance_status ? rsvp.attendance_status !== "attending" : !rsvp.attending) {
     return withCors(
       json({ ok: false, error: "not_attending" satisfies SubmitSongRequestError }),
       req,

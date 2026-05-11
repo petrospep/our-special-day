@@ -93,6 +93,10 @@ function guestDisplayName(guest: RsvpGuestRow) {
   return [guest.first_name, guest.last_name].filter(Boolean).join(" ");
 }
 
+function rsvpAttendanceStatus(response: RsvpResponseRow) {
+  return response.attendance_status ?? (response.attending ? "attending" : "declined");
+}
+
 function getBasePath() {
   const basePath = import.meta.env.BASE_URL || "/";
 
@@ -173,16 +177,20 @@ function AdminRoute() {
   const totals = useMemo(() => {
     return responses.reduce(
       (summary, response) => {
-        if (response.attending) {
+        const attendanceStatus = rsvpAttendanceStatus(response);
+
+        if (attendanceStatus === "attending") {
           summary.attending += 1;
           summary.guests += response.guest_count;
+        } else if (attendanceStatus === "maybe") {
+          summary.maybe += 1;
         } else {
           summary.declined += 1;
         }
 
         return summary;
       },
-      { attending: 0, declined: 0, guests: 0 },
+      { attending: 0, maybe: 0, declined: 0, guests: 0 },
     );
   }, [responses]);
 
@@ -587,7 +595,7 @@ function AdminRoute() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-4">
           <Card className="rounded-lg">
             <CardHeader className="pb-2">
               <CardDescription>Total invites</CardDescription>
@@ -604,6 +612,12 @@ function AdminRoute() {
             <CardHeader className="pb-2">
               <CardDescription>Expected guests</CardDescription>
               <CardTitle className="text-3xl">{totals.guests}</CardTitle>
+            </CardHeader>
+          </Card>
+          <Card className="rounded-lg">
+            <CardHeader className="pb-2">
+              <CardDescription>Very likely</CardDescription>
+              <CardTitle className="text-3xl">{totals.maybe}</CardTitle>
             </CardHeader>
           </Card>
         </div>
@@ -893,6 +907,7 @@ function AdminRoute() {
                 <TableBody>
                   {responses.map((response) => {
                     const guests = guestsByResponseId[response.id] ?? [];
+                    const attendanceStatus = rsvpAttendanceStatus(response);
 
                     return (
                       <TableRow key={response.id}>
@@ -915,8 +930,10 @@ function AdminRoute() {
                         </TableCell>
                         <TableCell className="font-mono text-xs">{response.invite_code}</TableCell>
                         <TableCell>
-                          <Badge variant={response.attending ? "outline" : "secondary"}>
-                            {response.attending ? "attending" : "declined"}
+                          <Badge
+                            variant={attendanceStatus === "attending" ? "outline" : "secondary"}
+                          >
+                            {attendanceStatus === "maybe" ? "very likely" : attendanceStatus}
                           </Badge>
                         </TableCell>
                         <TableCell>{response.guest_count}</TableCell>

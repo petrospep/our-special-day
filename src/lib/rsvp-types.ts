@@ -37,6 +37,7 @@ export type RsvpResponseRow = TableRow<
     invite_code: string;
     full_name: string;
     attending: boolean;
+    attendance_status: AttendanceStatus;
     guest_count: number;
     email: string | null;
     phone_number: string | null;
@@ -60,6 +61,7 @@ export type RsvpGuestRow = TableRow<
 >;
 
 export type InviteCodeStatus = "valid" | "missing_code" | "not_found" | "used" | "disabled";
+export type AttendanceStatus = "attending" | "declined" | "maybe";
 
 export type SubmittedRsvpGuest = {
   firstName: string;
@@ -73,6 +75,7 @@ export type SubmittedRsvpGuest = {
 export type SubmittedRsvpResponse = {
   fullName: string;
   attending: boolean;
+  attendanceStatus: AttendanceStatus;
   guestCount: number;
   email: string | null;
   phoneNumber: string | null;
@@ -107,7 +110,7 @@ export type ValidateInviteResponse =
   | {
       ok: true;
       valid: false;
-      reason: Exclude<InviteCodeStatus, "valid"> | "rsvp_required" | "not_attending";
+      reason: Exclude<InviteCodeStatus, "valid"> | "maybe" | "rsvp_required" | "not_attending";
       rsvpResponse?: SubmittedRsvpResponse;
     }
   | {
@@ -128,6 +131,7 @@ export type SubmitRsvpRequest = {
     age?: number | null;
   };
   attending: boolean;
+  attendanceStatus: AttendanceStatus;
   email?: string | null;
   phoneNumber?: string | null;
   guests: Array<{
@@ -172,6 +176,7 @@ export type SubmitSongRequestResponse =
         | "invalid_code"
         | "disabled_code"
         | "rsvp_required"
+        | "maybe"
         | "not_attending"
         | "song_request_limit_reached"
         | "invalid_input"
