@@ -6,12 +6,21 @@ import { PageShell } from "@/components/PageShell";
 import { callFunction } from "@/lib/functions";
 import type {
   InviteCodeStatus,
+  SubmittedRsvpResponse,
   SubmitRsvpResponse,
   ValidateInviteResponse,
 } from "@/lib/rsvp-types";
 import { inviteCodeSchema, rsvpFormSchema } from "@/lib/rsvp-validation";
 
-type RsvpStatus = "idle" | "validating" | "invalid" | "ready" | "submitting" | "success" | "error";
+type RsvpStatus =
+  | "idle"
+  | "validating"
+  | "invalid"
+  | "ready"
+  | "submitting"
+  | "success"
+  | "submitted"
+  | "error";
 type InvalidReason = Exclude<InviteCodeStatus, "valid"> | "invalid_format";
 type FieldErrors = Partial<Record<string, string>>;
 type GuestFormValue = { firstName: string; lastName: string; under13: boolean; age: string };
@@ -48,6 +57,19 @@ function normalizeCode(value: string) {
   return value.trim().toLowerCase();
 }
 
+function formatSubmittedAt(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function getFieldErrors(error: {
   issues: Array<{ path: Array<string | number>; message: string }>;
 }) {
@@ -72,6 +94,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
   const [formErrors, setFormErrors] = useState<FieldErrors>({});
   const [attending, setAttending] = useState<"yes" | "no" | null>(null);
   const [additionalGuests, setAdditionalGuests] = useState<GuestFormValue[]>([]);
+  const [submittedRsvp, setSubmittedRsvp] = useState<SubmittedRsvpResponse | null>(null);
   const activeValidation = useRef(0);
   const submitInFlight = useRef(false);
 
@@ -82,6 +105,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     setManualCode(normalizedCode);
     setCode(normalizedCode);
     setCodeError(null);
+    setSubmittedRsvp(null);
 
     if (!parsed.success) {
       setInvalidReason(rawCode.trim() ? "invalid_format" : "missing_code");
@@ -96,6 +120,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
     try {
       const response = await callFunction<ValidateInviteResponse>("validate-invite", {
         code: normalizedCode,
+        includeRsvpResponse: true,
       });
 
       if (validationId !== activeValidation.current) {
@@ -108,7 +133,13 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       }
 
       if (response.ok && !response.valid) {
-        setInvalidReason(response.reason);
+        if (response.reason === "used" && response.rsvpResponse) {
+          setSubmittedRsvp(response.rsvpResponse);
+          setStatus("submitted");
+          return;
+        }
+
+        setInvalidReason(response.reason in invalidCopy ? response.reason : "not_found");
         setStatus("invalid");
         return;
       }
@@ -134,6 +165,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
       setCode("");
       setManualCode("");
       setCodeError(null);
+      setSubmittedRsvp(null);
       return;
     }
 
@@ -216,8 +248,7 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
 
       if (message === "already_used") {
         submitInFlight.current = false;
-        setInvalidReason("used");
-        setStatus("invalid");
+        void validateCode(code);
         return;
       }
 
@@ -318,6 +349,8 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
           )}
 
           {status === "success" && <SuccessPanel attending={attending} />}
+
+          {status === "submitted" && submittedRsvp && <SubmittedRsvpPanel rsvp={submittedRsvp} />}
 
           {status === "error" && (
             <ErrorPanel
@@ -623,8 +656,71 @@ function SuccessPanel({ attending }: { attending: "yes" | "no" | null }) {
           ? "Your RSVP has been received. See you on 25 July in Athens."
           : "Thank you for letting us know. We will be thinking of you."}
       </p>
+      <p className="mt-5 text-sm text-foreground/65">
+        If you need to change anything, please contact Petros directly.
+      </p>
       <Heart className="mx-auto mt-8 h-6 w-6 text-coral" aria-hidden />
       <p className="display-italic text-3xl text-olive mt-3">P &amp; N</p>
+    </div>
+  );
+}
+
+function SubmittedRsvpPanel({ rsvp }: { rsvp: SubmittedRsvpResponse }) {
+  const attendance = rsvp.attending ? "Attending" : "Not attending";
+
+  return (
+    <div className="py-2">
+      <div className="text-center">
+        <Check className="mx-auto h-8 w-8 text-olive" aria-hidden />
+        <p className="display-serif text-3xl text-olive mt-5">Your RSVP has already been sent</p>
+        <p className="mt-3 text-foreground/75">
+          Here is the response we have recorded for this invitation code.
+        </p>
+      </div>
+
+      <div className="mt-8 space-y-6">
+        <div className="grid sm:grid-cols-2 gap-4 border-y border-olive/15 py-5">
+          <SummaryItem label="Name" value={rsvp.fullName} />
+          <SummaryItem label="Attendance" value={attendance} />
+          <SummaryItem label="Total guests" value={String(rsvp.guestCount)} />
+          <SummaryItem label="Submitted" value={formatSubmittedAt(rsvp.submittedAt)} />
+          <SummaryItem label="Email" value={rsvp.email ?? "Not provided"} />
+          <SummaryItem label="Phone" value={rsvp.phoneNumber ?? "Not provided"} />
+        </div>
+
+        <section>
+          <h3 className="eyebrow mb-3">RSVP list</h3>
+          <ul className="space-y-2">
+            {rsvp.guests.map((guest, index) => (
+              <li
+                key={`${guest.fullName}-${index}`}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border border-olive/15 px-4 py-3"
+              >
+                <span className="font-medium text-olive">
+                  {guest.fullName}
+                  {guest.isSubmitter ? " (submitter)" : ""}
+                </span>
+                {guest.under13 && (
+                  <span className="text-sm text-foreground/65">Under 13, age {guest.age}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+
+      <p className="mt-7 text-center text-sm text-foreground/65">
+        If you need to change anything, please contact Petros directly.
+      </p>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="eyebrow text-[0.65rem]">{label}</p>
+      <p className="mt-1 text-foreground/80">{value}</p>
     </div>
   );
 }

@@ -2,13 +2,11 @@ import { createSupabaseAdminClient } from "../_shared/admin.ts";
 import { handleCors, withCors } from "../_shared/cors.ts";
 import { json, readJson } from "../_shared/json.ts";
 
-const MAX_GUEST_NAME_LENGTH = 100;
 const MAX_SONG_TITLE_LENGTH = 150;
 const MAX_ARTIST_LENGTH = 150;
 
 type SubmitSongRequestBody = {
   code?: unknown;
-  guestName?: unknown;
   songTitle?: unknown;
   artist?: unknown;
 };
@@ -16,6 +14,8 @@ type SubmitSongRequestBody = {
 type SubmitSongRequestError =
   | "invalid_code"
   | "disabled_code"
+  | "rsvp_required"
+  | "not_attending"
   | "song_request_limit_reached"
   | "invalid_input";
 
@@ -29,6 +29,14 @@ function trimRequiredString(value: unknown) {
 
 function invalidInput() {
   return json({ ok: false, error: "invalid_input" satisfies SubmitSongRequestError }, 400);
+}
+
+function mapSongRequest(request: { song_title: string; artist: string; created_at: string }) {
+  return {
+    songTitle: request.song_title,
+    artist: request.artist,
+    createdAt: request.created_at,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -51,16 +59,13 @@ Deno.serve(async (req) => {
   }
 
   const code = normalizeCode(body?.code);
-  const guestName = trimRequiredString(body?.guestName);
   const songTitle = trimRequiredString(body?.songTitle);
   const artist = trimRequiredString(body?.artist);
 
   if (
     !code ||
-    !guestName ||
     !songTitle ||
     !artist ||
-    guestName.length > MAX_GUEST_NAME_LENGTH ||
     songTitle.length > MAX_SONG_TITLE_LENGTH ||
     artist.length > MAX_ARTIST_LENGTH
   ) {
@@ -103,9 +108,37 @@ Deno.serve(async (req) => {
     );
   }
 
+  const { data: rsvp, error: rsvpError } = await supabaseAdmin
+    .from("rsvp_responses")
+    .select("full_name, attending")
+    .eq("invite_code", code)
+    .order("submitted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (rsvpError) {
+    console.error(rsvpError);
+
+    return withCors(json({ ok: false, error: "invalid_input" }, 500), req);
+  }
+
+  if (!rsvp) {
+    return withCors(
+      json({ ok: false, error: "rsvp_required" satisfies SubmitSongRequestError }),
+      req,
+    );
+  }
+
+  if (!rsvp.attending) {
+    return withCors(
+      json({ ok: false, error: "not_attending" satisfies SubmitSongRequestError }),
+      req,
+    );
+  }
+
   const { error } = await supabaseAdmin.from("song_requests").insert({
     invite_code: code,
-    guest_name: guestName,
+    guest_name: rsvp.full_name,
     song_title: songTitle,
     artist,
   });
@@ -136,6 +169,25 @@ Deno.serve(async (req) => {
 
   const submitted = count ?? 0;
   const limit = 3;
+  const { data: songRequests, error: songRequestsError } = await supabaseAdmin
+    .from("song_requests")
+    .select("song_title, artist, created_at")
+    .eq("invite_code", code)
+    .order("created_at", { ascending: true });
+
+  if (songRequestsError) {
+    console.error(songRequestsError);
+
+    return withCors(
+      json({
+        ok: true,
+        songRequestsSubmitted: submitted,
+        songRequestsLeft: Math.max(limit - submitted, 0),
+        songRequestLimit: limit,
+      }),
+      req,
+    );
+  }
 
   return withCors(
     json({
@@ -143,6 +195,7 @@ Deno.serve(async (req) => {
       songRequestsSubmitted: submitted,
       songRequestsLeft: Math.max(limit - submitted, 0),
       songRequestLimit: limit,
+      songRequests: (songRequests ?? []).map(mapSongRequest),
     }),
     req,
   );

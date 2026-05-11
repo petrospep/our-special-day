@@ -61,10 +61,37 @@ export type RsvpGuestRow = TableRow<
 
 export type InviteCodeStatus = "valid" | "missing_code" | "not_found" | "used" | "disabled";
 
+export type SubmittedRsvpGuest = {
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  isSubmitter: boolean;
+  under13: boolean;
+  age: number | null;
+};
+
+export type SubmittedRsvpResponse = {
+  fullName: string;
+  attending: boolean;
+  guestCount: number;
+  email: string | null;
+  phoneNumber: string | null;
+  submittedAt: string;
+  guests: SubmittedRsvpGuest[];
+};
+
+export type SubmittedSongRequest = {
+  songTitle: string;
+  artist: string;
+  createdAt: string;
+};
+
 export type ValidateInviteRequest = {
   code: string;
+  includeRsvpResponse?: boolean;
   includeSongRequestUsage?: boolean;
   allowUsedForSongRequests?: boolean;
+  requireAttendingRsvpForSongRequests?: boolean;
 };
 
 export type ValidateInviteResponse =
@@ -74,15 +101,22 @@ export type ValidateInviteResponse =
       songRequestsSubmitted?: number;
       songRequestsLeft?: number;
       songRequestLimit?: number;
+      songRequestGuestName?: string;
+      songRequests?: SubmittedSongRequest[];
     }
   | {
       ok: true;
       valid: false;
-      reason: Exclude<InviteCodeStatus, "valid">;
+      reason: Exclude<InviteCodeStatus, "valid"> | "rsvp_required" | "not_attending";
+      rsvpResponse?: SubmittedRsvpResponse;
     }
   | {
       ok: false;
-      error: "server_not_configured" | "invite_lookup_failed" | "song_request_lookup_failed";
+      error:
+        | "server_not_configured"
+        | "invite_lookup_failed"
+        | "song_request_lookup_failed"
+        | "rsvp_response_lookup_failed";
     };
 
 export type SubmitRsvpRequest = {
@@ -120,7 +154,6 @@ export type SubmitRsvpResponse =
 
 export type SubmitSongRequestRequest = {
   code: string;
-  guestName: string;
   songTitle: string;
   artist: string;
 };
@@ -131,12 +164,15 @@ export type SubmitSongRequestResponse =
       songRequestsSubmitted?: number;
       songRequestsLeft?: number;
       songRequestLimit?: number;
+      songRequests?: SubmittedSongRequest[];
     }
   | {
       ok: false;
       error:
         | "invalid_code"
         | "disabled_code"
+        | "rsvp_required"
+        | "not_attending"
         | "song_request_limit_reached"
         | "invalid_input"
         | "server_not_configured";

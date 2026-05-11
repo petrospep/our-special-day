@@ -5,10 +5,10 @@ import { Menu, X } from "lucide-react";
 const links = [
   { to: "/", hash: "home", label: "Home" },
   { to: "/", hash: "events", label: "Events" },
+  { to: "/", hash: "rsvp", label: "RSVP" },
   { to: "/", hash: "music", label: "Music" },
   { to: "/", hash: "gifts", label: "Gifts" },
   { to: "/", hash: "faq", label: "FAQ" },
-  { to: "/", hash: "rsvp", label: "RSVP" },
 ] as const;
 
 export function SiteHeader() {

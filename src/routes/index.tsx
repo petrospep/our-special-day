@@ -13,7 +13,11 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { callFunction } from "@/lib/functions";
 import { RsvpContent } from "@/components/RsvpContent";
-import type { SubmitSongRequestResponse, ValidateInviteResponse } from "@/lib/rsvp-types";
+import type {
+  SubmittedSongRequest,
+  SubmitSongRequestResponse,
+  ValidateInviteResponse,
+} from "@/lib/rsvp-types";
 import { inviteCodeSchema } from "@/lib/rsvp-validation";
 import couplePhoto from "@/assets/couplephoto.jpg";
 
@@ -32,8 +36,8 @@ function Index() {
     <div className="relative overflow-hidden">
       <Hero />
       <EventsSection />
-      <MusicSection inviteCode={inviteCode} />
       <RsvpContent initialCodeFromUrl={inviteCode} />
+      <MusicSection inviteCode={inviteCode} />
       <GiftsSection />
       <FaqSection />
     </div>
@@ -128,7 +132,6 @@ function EventsSection() {
 
 /* ---------------- Music ---------------- */
 const songSchema = z.object({
-  guest_name: z.string().trim().min(1, "Your name is required").max(100),
   song_title: z.string().trim().min(1, "Song title is required").max(150),
   artist: z.string().trim().min(1, "Artist is required").max(150),
 });
@@ -141,10 +144,29 @@ type MusicRequestUsage = {
   limit: number;
 };
 
+type MusicBlockReason = "invalid_code" | "rsvp_required" | "not_attending";
+
+const musicBlockCopy: Record<MusicBlockReason, { title: string; message: string }> = {
+  invalid_code: {
+    title: "We need your invitation code",
+    message: "Enter the code from your invitation after you have RSVP'd yes.",
+  },
+  rsvp_required: {
+    title: "RSVP first, then send us your song",
+    message:
+      "Music requests open after you submit an attending RSVP. Once that is done, we will use your RSVP name automatically here.",
+  },
+  not_attending: {
+    title: "Thanks for letting us know",
+    message: "Music requests are available for guests joining us at the wedding.",
+  },
+};
+
 function normalizeMusicUsage(response: {
   songRequestsSubmitted?: number;
   songRequestsLeft?: number;
   songRequestLimit?: number;
+  songRequestGuestName?: string;
 }): MusicRequestUsage {
   const limit = response.songRequestLimit ?? MUSIC_REQUEST_LIMIT;
   const submitted = response.songRequestsSubmitted ?? 0;
@@ -168,6 +190,9 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     inviteCodeSchema.safeParse(inviteCode).success ? "validating" : "idle",
   );
   const [manualCode, setManualCode] = useState(inviteCode);
+  const [musicGuestName, setMusicGuestName] = useState("");
+  const [blockReason, setBlockReason] = useState<MusicBlockReason>("invalid_code");
+  const [songRequests, setSongRequests] = useState<SubmittedSongRequest[]>([]);
   const [musicUsage, setMusicUsage] = useState<MusicRequestUsage>({
     submitted: 0,
     left: MUSIC_REQUEST_LIMIT,
@@ -178,6 +203,7 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
   async function validateCode(rawCode: string) {
     const parsed = inviteCodeSchema.safeParse(rawCode);
     if (!parsed.success) {
+      setBlockReason("invalid_code");
       setStatus("invalid");
       return;
     }
@@ -188,12 +214,24 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
         code: parsed.data,
         includeSongRequestUsage: true,
         allowUsedForSongRequests: true,
+        requireAttendingRsvpForSongRequests: true,
       });
       if (validation.ok && validation.valid) {
         setManualCode(parsed.data);
+        setMusicGuestName(validation.songRequestGuestName ?? "");
+        setSongRequests(validation.songRequests ?? []);
         setMusicUsage(normalizeMusicUsage(validation));
         setStatus("ready");
         return;
+      }
+      if (validation.ok && !validation.valid) {
+        setBlockReason(
+          validation.reason === "rsvp_required"
+            ? "rsvp_required"
+            : validation.reason === "not_attending"
+              ? "not_attending"
+              : "invalid_code",
+        );
       }
       setStatus("invalid");
     } catch {
@@ -212,7 +250,6 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     const form = e.currentTarget;
     const fd = new FormData(form);
     const parsed = songSchema.safeParse({
-      guest_name: fd.get("guest_name"),
       song_title: fd.get("song_title"),
       artist: fd.get("artist"),
     });
@@ -234,12 +271,12 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     try {
       const response = await callFunction<SubmitSongRequestResponse>("submit-song-request", {
         code: manualCode.trim().toLowerCase(),
-        guestName: parsed.data.guest_name,
         songTitle: parsed.data.song_title,
         artist: parsed.data.artist,
       });
       if (response.ok) {
         setMusicUsage(normalizeMusicUsage(response));
+        setSongRequests(response.songRequests ?? []);
       }
       toast.success("Added to the playlist.");
       form.reset();
@@ -253,6 +290,12 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
           left: 0,
         }));
         toast.error("This invite code already reached the 3 music-request limit.");
+      } else if (error instanceof Error && error.message === "rsvp_required") {
+        setStatus("invalid");
+        setBlockReason("rsvp_required");
+      } else if (error instanceof Error && error.message === "not_attending") {
+        setStatus("invalid");
+        setBlockReason("not_attending");
       } else {
         toast.error("Could not save your request. Please try again.");
       }
@@ -268,6 +311,9 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
     }
   }, [inviteCode]);
 
+  const blockCopy = musicBlockCopy[blockReason];
+  const showMusicCodeField = status !== "invalid" || blockReason !== "rsvp_required";
+
   return (
     <PageShell
       id="music"
@@ -280,35 +326,64 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
         <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-12 max-w-2xl mx-auto mt-6">
           <form onSubmit={onCodeSubmit} className="space-y-6" noValidate>
             <div className="text-center">
-              <p className="display-serif text-3xl text-olive">We need your invitation code</p>
-              <p className="mt-3 text-foreground/75">
-                Enter the code from your invitation to unlock the music request form.
-              </p>
+              <p className="display-serif text-3xl text-olive">{blockCopy.title}</p>
+              <p className="mt-3 text-foreground/75">{blockCopy.message}</p>
             </div>
-            <label className="block">
-              <span className="eyebrow block mb-2">Invitation code</span>
-              <input
-                name="code"
-                value={manualCode}
-                onChange={(event) => setManualCode(event.target.value)}
-                autoComplete="off"
-                aria-invalid={status === "invalid"}
-                aria-describedby={status === "invalid" ? "music-code-error" : undefined}
-                placeholder="w-xxxxxxxx"
-                className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
-              />
-            </label>
-            {status === "invalid" && (
-              <p id="music-code-error" className="text-sm text-destructive" role="alert">
-                Please enter a valid, active invite code.
-              </p>
+            {showMusicCodeField && (
+              <label className="block">
+                <span className="eyebrow block mb-2">Invitation code</span>
+                <input
+                  name="code"
+                  value={manualCode}
+                  onChange={(event) => setManualCode(event.target.value)}
+                  autoComplete="off"
+                  aria-invalid={status === "invalid"}
+                  aria-describedby={status === "invalid" ? "music-code-error" : undefined}
+                  placeholder="w-xxxxxxxx"
+                  className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+                />
+              </label>
             )}
-            <button
-              type="submit"
-              className="w-full bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
-            >
-              {status === "validating" ? "Checking code..." : "Unlock music requests"}
-            </button>
+            {status === "invalid" && (
+              <div
+                id="music-code-error"
+                className={`border px-4 py-3 text-sm text-foreground/75 ${
+                  blockReason === "rsvp_required"
+                    ? "border-olive/25 bg-olive/5"
+                    : "border-coral/25 bg-coral/5"
+                }`}
+                role="alert"
+              >
+                {blockReason === "rsvp_required" ? (
+                  <div className="space-y-3">
+                    <p>
+                      Please RSVP first. If you are joining us, the music form will unlock straight
+                      away.
+                    </p>
+                    <a
+                      href="#rsvp"
+                      className="inline-flex items-center justify-center border border-olive/40 px-4 py-2 text-xs tracking-[0.15em] uppercase text-olive hover:bg-olive/5 transition"
+                    >
+                      Go to RSVP
+                    </a>
+                  </div>
+                ) : (
+                  <p>
+                    {blockReason === "not_attending"
+                      ? "This invitation is marked as not attending, so music requests are closed for this code."
+                      : "Please check the code and try again after your attending RSVP has been submitted."}
+                  </p>
+                )}
+              </div>
+            )}
+            {showMusicCodeField && (
+              <button
+                type="submit"
+                className="w-full bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition"
+              >
+                {status === "validating" ? "Checking code..." : "Unlock music requests"}
+              </button>
+            )}
           </form>
         </div>
       ) : (
@@ -317,20 +392,60 @@ function MusicSection({ inviteCode }: { inviteCode: string }) {
           className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
         >
           <p className="text-sm text-foreground/75">{musicUsageMessage(musicUsage)}</p>
-          <Field name="guest_name" label="Your name" />
-          <Field name="song_title" label="Song title" />
-          <Field name="artist" label="Artist" />
-          <button
-            type="submit"
-            disabled={submitting || musicUsage.left <= 0}
-            className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
-          >
-            <Music size={16} />
-            {submitting ? "Adding..." : musicUsage.left <= 0 ? "Limit reached" : "Add to playlist"}
-          </button>
+          {musicGuestName && (
+            <p className="text-sm text-foreground/75">
+              Requesting as <span className="font-medium text-olive">{musicGuestName}</span>
+            </p>
+          )}
+          {musicUsage.left <= 0 ? (
+            <div className="border border-olive/25 bg-olive/5 px-4 py-3 text-sm text-foreground/75">
+              You have reached the maximum of {musicUsage.limit} music requests for this invitation.
+            </div>
+          ) : (
+            <>
+              <Field name="song_title" label="Song title" />
+              <Field name="artist" label="Band / artist" />
+            </>
+          )}
+          {songRequests.length > 0 && <SongRequestList requests={songRequests} />}
+          {musicUsage.left > 0 && (
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
+            >
+              <Music size={16} />
+              {submitting ? "Adding..." : "Add to playlist"}
+            </button>
+          )}
         </form>
       )}
     </PageShell>
+  );
+}
+
+function SongRequestList({ requests }: { requests: SubmittedSongRequest[] }) {
+  return (
+    <section className="border border-olive/15 bg-olive/5 px-4 py-4">
+      <h3 className="eyebrow mb-3">Your music requests</h3>
+      <ul className="space-y-2">
+        {requests.map((request, index) => (
+          <li
+            key={`${request.songTitle}-${request.artist}-${request.createdAt}-${index}`}
+            className="flex items-start gap-3 text-sm text-foreground/80"
+          >
+            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-olive text-[0.65rem] text-cream">
+              {index + 1}
+            </span>
+            <span>
+              <span className="font-medium text-olive">{request.songTitle}</span>
+              <span className="text-foreground/60"> by </span>
+              <span>{request.artist}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
