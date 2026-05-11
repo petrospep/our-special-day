@@ -744,137 +744,141 @@ function AdminRoute() {
                     </div>
                   </div>
                 )}
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={
-                            allInvitesSelected
-                              ? true
-                              : someInvitesSelected
-                                ? "indeterminate"
-                                : false
-                          }
-                          onCheckedChange={(checked) => toggleAllInviteSelection(checked === true)}
-                          aria-label="Select all invitation codes"
-                        />
-                      </TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Invitation URL</TableHead>
-                      <TableHead>RSVPs</TableHead>
-                      <TableHead>Music requests</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {invites.map((invite) => {
-                      const url = makeInvitationUrl(invite.code);
-                      const status = inviteStatus(invite);
-                      const rsvpCount = responses.filter(
-                        (response) => response.invite_code === invite.code,
-                      ).length;
-                      const musicCount = songRequests.filter(
-                        (request) => request.invite_code === invite.code,
-                      ).length;
-                      const selected = selectedCodes.includes(invite.code);
+                <div className="max-h-[32rem] overflow-y-auto rounded-md border">
+                  <Table>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={
+                              allInvitesSelected
+                                ? true
+                                : someInvitesSelected
+                                  ? "indeterminate"
+                                  : false
+                            }
+                            onCheckedChange={(checked) =>
+                              toggleAllInviteSelection(checked === true)
+                            }
+                            aria-label="Select all invitation codes"
+                          />
+                        </TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Invitation URL</TableHead>
+                        <TableHead>RSVPs</TableHead>
+                        <TableHead>Music requests</TableHead>
+                        <TableHead>Notes</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {invites.map((invite) => {
+                        const url = makeInvitationUrl(invite.code);
+                        const status = inviteStatus(invite);
+                        const rsvpCount = responses.filter(
+                          (response) => response.invite_code === invite.code,
+                        ).length;
+                        const musicCount = songRequests.filter(
+                          (request) => request.invite_code === invite.code,
+                        ).length;
+                        const selected = selectedCodes.includes(invite.code);
 
-                      return (
-                        <TableRow key={invite.id} data-state={selected ? "selected" : undefined}>
-                          <TableCell className="font-mono text-xs">{invite.code}</TableCell>
-                          <TableCell>
-                            <Checkbox
-                              checked={selected}
-                              onCheckedChange={(checked) =>
-                                toggleInviteSelection(invite.code, checked === true)
-                              }
-                              aria-label={`Select invitation code ${invite.code}`}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <StatusBadge status={status} />
-                          </TableCell>
-                          <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
-                            {url}
-                          </TableCell>
-                          <TableCell>{rsvpCount} / 1</TableCell>
-                          <TableCell>{musicCount} / 3</TableCell>
-                          <TableCell className="max-w-56 whitespace-normal">
-                            {invite.notes || "—"}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {formatDate(invite.created_at)}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex shrink-0 flex-wrap gap-2">
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => void copyLink(invite.code)}
-                              >
-                                <Copy />
-                                Copy
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                disabled={status === "disabled" || disablingCode === invite.code}
-                                onClick={() => void onDisableInvite(invite.code)}
-                              >
-                                {disablingCode === invite.code ? (
-                                  <Loader2 className="animate-spin" />
-                                ) : (
-                                  <XCircle />
-                                )}
-                                Disable
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={deletingCode === invite.code}
-                                  >
-                                    {deletingCode === invite.code ? (
-                                      <Loader2 className="animate-spin" />
-                                    ) : (
-                                      <Trash2 />
-                                    )}
-                                    Delete
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete invitation code?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      This will permanently delete {invite.code}. Codes with RSVP or
-                                      music records cannot be deleted; disable them instead.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      className={buttonVariants({ variant: "destructive" })}
-                                      onClick={() => void onDeleteInvite(invite.code)}
+                        return (
+                          <TableRow key={invite.id} data-state={selected ? "selected" : undefined}>
+                            <TableCell className="font-mono text-xs">{invite.code}</TableCell>
+                            <TableCell>
+                              <Checkbox
+                                checked={selected}
+                                onCheckedChange={(checked) =>
+                                  toggleInviteSelection(invite.code, checked === true)
+                                }
+                                aria-label={`Select invitation code ${invite.code}`}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <StatusBadge status={status} />
+                            </TableCell>
+                            <TableCell className="max-w-80 break-all text-xs text-muted-foreground">
+                              {url}
+                            </TableCell>
+                            <TableCell>{rsvpCount} / 1</TableCell>
+                            <TableCell>{musicCount} / 3</TableCell>
+                            <TableCell className="max-w-56 whitespace-normal">
+                              {invite.notes || "—"}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {formatDate(invite.created_at)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex shrink-0 flex-wrap gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => void copyLink(invite.code)}
+                                >
+                                  <Copy />
+                                  Copy
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  disabled={status === "disabled" || disablingCode === invite.code}
+                                  onClick={() => void onDisableInvite(invite.code)}
+                                >
+                                  {disablingCode === invite.code ? (
+                                    <Loader2 className="animate-spin" />
+                                  ) : (
+                                    <XCircle />
+                                  )}
+                                  Disable
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={deletingCode === invite.code}
                                     >
-                                      Delete code
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                                      {deletingCode === invite.code ? (
+                                        <Loader2 className="animate-spin" />
+                                      ) : (
+                                        <Trash2 />
+                                      )}
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete invitation code?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete {invite.code}. Codes with RSVP
+                                        or music records cannot be deleted; disable them instead.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className={buttonVariants({ variant: "destructive" })}
+                                        onClick={() => void onDeleteInvite(invite.code)}
+                                      >
+                                        Delete code
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </CardContent>
@@ -893,62 +897,68 @@ function AdminRoute() {
                 No RSVP responses have been submitted yet.
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Guests</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Submitted</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {responses.map((response) => {
-                    const guests = guestsByResponseId[response.id] ?? [];
-                    const attendanceStatus = rsvpAttendanceStatus(response);
+              <div className="max-h-[32rem] overflow-y-auto rounded-md border">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-card">
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Guests</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Submitted</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {responses.map((response) => {
+                      const guests = guestsByResponseId[response.id] ?? [];
+                      const attendanceStatus = rsvpAttendanceStatus(response);
 
-                    return (
-                      <TableRow key={response.id}>
-                        <TableCell className="min-w-56">
-                          {guests.length === 0 ? (
-                            <span className="font-medium">{response.full_name}</span>
-                          ) : (
-                            <div className="space-y-2">
-                              {guests.map((guest) => (
-                                <div key={guest.id} className="flex flex-wrap items-center gap-2">
-                                  <span className="font-medium">{guestDisplayName(guest)}</span>
-                                  {guest.is_submitter && <Badge variant="outline">submitted</Badge>}
-                                  {guest.under_13 && (
-                                    <Badge variant="secondary">age {guest.age}</Badge>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">{response.invite_code}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={attendanceStatus === "attending" ? "outline" : "secondary"}
-                          >
-                            {attendanceStatus === "maybe" ? "very likely" : attendanceStatus}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{response.guest_count}</TableCell>
-                        <TableCell className="max-w-56 whitespace-normal">
-                          {[response.email, response.phone_number].filter(Boolean).join(" / ") ||
-                            "None"}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          {formatDate(response.submitted_at)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                      return (
+                        <TableRow key={response.id}>
+                          <TableCell className="min-w-56">
+                            {guests.length === 0 ? (
+                              <span className="font-medium">{response.full_name}</span>
+                            ) : (
+                              <div className="space-y-2">
+                                {guests.map((guest) => (
+                                  <div key={guest.id} className="flex flex-wrap items-center gap-2">
+                                    <span className="font-medium">{guestDisplayName(guest)}</span>
+                                    {guest.is_submitter && (
+                                      <Badge variant="outline">submitted</Badge>
+                                    )}
+                                    {guest.under_13 && (
+                                      <Badge variant="secondary">age {guest.age}</Badge>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs">
+                            {response.invite_code}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={attendanceStatus === "attending" ? "outline" : "secondary"}
+                            >
+                              {attendanceStatus === "maybe" ? "very likely" : attendanceStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{response.guest_count}</TableCell>
+                          <TableCell className="max-w-56 whitespace-normal">
+                            {[response.email, response.phone_number].filter(Boolean).join(" / ") ||
+                              "None"}
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {formatDate(response.submitted_at)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
