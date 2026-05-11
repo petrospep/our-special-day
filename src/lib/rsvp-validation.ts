@@ -96,11 +96,6 @@ export const rsvpFormSchema = z.object({
   }),
   email: optionalEmailSchema,
   phoneNumber: optionalPhoneSchema,
-  dietaryRequirements: optionalTextSchema(
-    1000,
-    "Dietary requirements must be 1000 characters or fewer.",
-  ),
-  notes: optionalTextSchema(1000, "Notes must be 1000 characters or fewer."),
 });
 
 export const generateInviteSchema = z.object({

@@ -40,8 +40,6 @@ export type RsvpResponseRow = TableRow<
     guest_count: number;
     email: string | null;
     phone_number: string | null;
-    dietary_requirements: string | null;
-    notes: string | null;
     submitted_at: string;
   }
 >;
@@ -99,8 +97,6 @@ export type SubmitRsvpRequest = {
     under13: boolean;
     age?: number | null;
   }>;
-  dietaryRequirements?: string | null;
-  notes?: string | null;
 };
 
 export type SubmitRsvpResponse =

@@ -5,7 +5,6 @@ import { json, readJson } from "../_shared/json.ts";
 const MAX_NAME_LENGTH = 80;
 const MAX_EMAIL_LENGTH = 254;
 const MAX_PHONE_LENGTH = 40;
-const MAX_OPTIONAL_TEXT_LENGTH = 1000;
 const MAX_GUESTS = 10;
 const EVENT_TITLE = "Petros & Nikki's wedding";
 const EVENT_DATE = "Saturday, 25 July 2026";
@@ -26,8 +25,6 @@ type SubmitRsvpBody = {
   email?: unknown;
   phoneNumber?: unknown;
   guests?: unknown;
-  dietaryRequirements?: unknown;
-  notes?: unknown;
 };
 
 type SubmitRsvpError = "invalid_code" | "disabled_code" | "already_used" | "invalid_input";
@@ -54,8 +51,6 @@ type RsvpEmailDetails = {
   email: string | null;
   phoneNumber: string | null;
   guests: NormalizedGuest[];
-  dietaryRequirements: string | null;
-  notes: string | null;
 };
 
 function normalizeCode(value: unknown) {
@@ -150,8 +145,6 @@ function buildGuestConfirmation(details: RsvpEmailDetails) {
       textLine("Date", EVENT_DATE),
       textLine("Location", EVENT_LOCATION),
       textLine("Additional guests", guestNames),
-      textLine("Dietary requirements", details.dietaryRequirements),
-      textLine("Notes", details.notes),
       "",
       "With love,",
       "Petros & Nikki",
@@ -163,8 +156,6 @@ function buildGuestConfirmation(details: RsvpEmailDetails) {
       htmlRow("Date", EVENT_DATE),
       htmlRow("Location", EVENT_LOCATION),
       htmlRow("Additional guests", guestNames),
-      htmlRow("Dietary requirements", details.dietaryRequirements),
-      htmlRow("Notes", details.notes),
       "<p>With love,<br>Petros &amp; Nikki</p>",
     ].join(""),
   };
@@ -190,8 +181,6 @@ function buildOwnerNotification(details: RsvpEmailDetails) {
       textLine("Phone", details.phoneNumber),
       textLine("Additional guests", guestNames),
       textLine("Party size", String(details.guests.length + 1)),
-      textLine("Dietary requirements", details.dietaryRequirements),
-      textLine("Notes", details.notes),
     ].join("\n"),
     html: [
       `<p>New RSVP for ${escapeHtml(EVENT_TITLE)}</p>`,
@@ -202,8 +191,6 @@ function buildOwnerNotification(details: RsvpEmailDetails) {
       htmlRow("Phone", details.phoneNumber),
       htmlRow("Additional guests", guestNames),
       htmlRow("Party size", String(details.guests.length + 1)),
-      htmlRow("Dietary requirements", details.dietaryRequirements),
-      htmlRow("Notes", details.notes),
     ].join(""),
   };
 }
@@ -304,8 +291,6 @@ Deno.serve(async (req) => {
   const email = trimOptionalString(body?.email);
   const phoneNumber = trimOptionalString(body?.phoneNumber);
   const guests = body?.guests;
-  const dietaryRequirements = trimOptionalString(body?.dietaryRequirements);
-  const notes = trimOptionalString(body?.notes);
   const submitterFirstName = trimRequiredString(submitter?.firstName);
   const submitterLastName = trimRequiredString(submitter?.lastName);
   const submitterUnder13 = submitter?.under13;
@@ -332,11 +317,7 @@ Deno.serve(async (req) => {
       (email.length > MAX_EMAIL_LENGTH || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) ||
     (phoneNumber !== null && phoneNumber.length > MAX_PHONE_LENGTH) ||
     !Array.isArray(guests) ||
-    guests.length + 1 > MAX_GUESTS ||
-    dietaryRequirements === undefined ||
-    notes === undefined ||
-    (dietaryRequirements !== null && dietaryRequirements.length > MAX_OPTIONAL_TEXT_LENGTH) ||
-    (notes !== null && notes.length > MAX_OPTIONAL_TEXT_LENGTH)
+    guests.length + 1 > MAX_GUESTS
   ) {
     return withCors(invalidInput());
   }
@@ -386,8 +367,6 @@ Deno.serve(async (req) => {
     p_email: email,
     p_phone_number: phoneNumber,
     p_guests: normalizedGuests,
-    p_dietary_requirements: dietaryRequirements,
-    p_notes: notes,
   });
 
   if (error) {
@@ -409,8 +388,6 @@ Deno.serve(async (req) => {
       email,
       phoneNumber,
       guests: normalizedGuests,
-      dietaryRequirements,
-      notes,
     });
 
     return withCors(json({ ok: true }));

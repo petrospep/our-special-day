@@ -887,8 +887,6 @@ function AdminRoute() {
                     <TableHead>Status</TableHead>
                     <TableHead>Guests</TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Dietary</TableHead>
-                    <TableHead>Notes</TableHead>
                     <TableHead>Submitted</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -925,12 +923,6 @@ function AdminRoute() {
                         <TableCell className="max-w-56 whitespace-normal">
                           {[response.email, response.phone_number].filter(Boolean).join(" / ") ||
                             "None"}
-                        </TableCell>
-                        <TableCell className="max-w-56 whitespace-normal">
-                          {response.dietary_requirements || "None"}
-                        </TableCell>
-                        <TableCell className="max-w-56 whitespace-normal">
-                          {response.notes || "None"}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {formatDate(response.submitted_at)}

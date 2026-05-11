@@ -177,8 +177,6 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
         ...guest,
         age: guest.under13 ? guest.age : undefined,
       })),
-      dietaryRequirements: null,
-      notes: null,
     });
 
     if (!parsed.success) {
@@ -207,8 +205,6 @@ export function RsvpContent({ initialCodeFromUrl = "" }: { initialCodeFromUrl?: 
           ...guest,
           age: guest.age ?? null,
         })),
-        dietaryRequirements: parsed.data.dietaryRequirements ?? null,
-        notes: parsed.data.notes ?? null,
       });
 
       setStatus("success");

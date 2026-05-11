@@ -125,37 +125,31 @@ export type Database = {
       rsvp_responses: {
         Row: {
           attending: boolean;
-          dietary_requirements: string | null;
           email: string | null;
           full_name: string;
           guest_count: number;
           id: string;
           invite_code: string;
-          notes: string | null;
           phone_number: string | null;
           submitted_at: string;
         };
         Insert: {
           attending: boolean;
-          dietary_requirements?: string | null;
           email?: string | null;
           full_name: string;
           guest_count?: number;
           id?: string;
           invite_code: string;
-          notes?: string | null;
           phone_number?: string | null;
           submitted_at?: string;
         };
         Update: {
           attending?: boolean;
-          dietary_requirements?: string | null;
           email?: string | null;
           full_name?: string;
           guest_count?: number;
           id?: string;
           invite_code?: string;
-          notes?: string | null;
           phone_number?: string | null;
           submitted_at?: string;
         };
