@@ -6,7 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "../components/ui/accordion";
-import { MapPin, Clock, Shirt, Music, Heart } from "lucide-react";
+import { MapPin, Clock, Shirt, Music, Heart, Eye, LockKeyhole, Copy, Check } from "lucide-react";
 import { Reveal } from "../components/Reveal";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { callFunction } from "@/lib/functions";
 import { RsvpContent } from "@/components/RsvpContent";
 import type {
+  GiftRegion,
+  RevealGiftDetailsResponse,
   SubmittedSongRequest,
   SubmitSongRequestResponse,
   ValidateInviteResponse,
@@ -38,7 +40,7 @@ function Index() {
       <EventsSection />
       <RsvpContent initialCodeFromUrl={inviteCode} />
       <MusicSection inviteCode={inviteCode} />
-      <GiftsSection />
+      <GiftsSection inviteCode={inviteCode} />
       <FaqSection />
     </div>
   );
@@ -67,14 +69,17 @@ const events = [
     title: "Wedding ceremony",
     venue: "Saints Constantine and Helen Orthodox Cathedral of Glyfada",
     address: "Glyfada, Athens, Greece",
+    mapsUrl:
+      "https://www.google.com/maps/search/?api=1&query=Saints%20Constantine%20and%20Helen%20Orthodox%20Cathedral%20of%20Glyfada%2C%20Glyfada%2C%20Athens%2C%20Greece",
     dress: "Please arrive by 19:15.",
     note: "You are cordially invited to join us as we begin our wedding celebration.",
   },
   {
     time: "Following the ceremony",
     title: "Reception",
-    venue: "Efllena",
+    venue: "Efilena Estate",
     address: "Odos Amenon, Oikismos Galene, Koropi, 194 00",
+    mapsUrl: "https://maps.app.goo.gl/sEp6daE3wwtVTC3N6",
     dress: "Dinner and dancing to follow.",
     note: "We look forward to celebrating with you after the ceremony.",
   },
@@ -103,9 +108,24 @@ function EventsSection() {
             <h3 className="display-serif text-4xl md:text-5xl text-olive mt-3">{e.title}</h3>
             <div className="mt-6 grid sm:grid-cols-2 gap-5 text-foreground/80">
               <div className="flex gap-3">
-                <MapPin size={18} className="text-olive shrink-0 mt-1" />
+                <a
+                  href={e.mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Open ${e.venue} in Google Maps`}
+                  className="mt-1 shrink-0 text-olive transition-colors hover:text-olive/75"
+                >
+                  <MapPin size={18} aria-hidden="true" />
+                </a>
                 <div>
-                  <p className="font-medium text-olive">{e.venue}</p>
+                  <a
+                    href={e.mapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-olive transition-colors hover:text-olive/75"
+                  >
+                    {e.venue}
+                  </a>
                   <p className="text-sm">{e.address}</p>
                 </div>
               </div>
@@ -462,7 +482,86 @@ function SongRequestList({ requests }: { requests: SubmittedSongRequest[] }) {
 }
 
 /* ---------------- Gifts ---------------- */
-function GiftsSection() {
+type GiftRevealStatus = "idle" | "revealing" | "revealed" | "invalid";
+
+const giftOptions: Array<{ value: GiftRegion; label: string }> = [
+  { value: "uk", label: "UK/GBP" },
+  { value: "greece", label: "Greece/EURO" },
+];
+
+function GiftsSection({ inviteCode }: { inviteCode: string }) {
+  const [selectedRegion, setSelectedRegion] = useState<GiftRegion | null>(null);
+  const [manualCode, setManualCode] = useState(inviteCode);
+  const [status, setStatus] = useState<GiftRevealStatus>("idle");
+  const [revealedDetails, setRevealedDetails] = useState<RevealGiftDetailsResponse | null>(null);
+  const [copiedGiftField, setCopiedGiftField] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (inviteCodeSchema.safeParse(inviteCode).success) {
+      setManualCode(inviteCode);
+      setStatus("idle");
+      setRevealedDetails(null);
+      setCopiedGiftField(null);
+    }
+  }, [inviteCode]);
+
+  async function onReveal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!selectedRegion) {
+      toast.error("Choose UK/GBP or Greece/EURO first.");
+      return;
+    }
+
+    const parsed = inviteCodeSchema.safeParse(manualCode);
+
+    if (!parsed.success) {
+      setStatus("invalid");
+      setRevealedDetails(null);
+      setCopiedGiftField(null);
+      toast.error(parsed.error.issues[0]?.message ?? "Enter a valid invitation code.");
+      return;
+    }
+
+    setStatus("revealing");
+    setRevealedDetails(null);
+    setCopiedGiftField(null);
+
+    try {
+      const response = await callFunction<RevealGiftDetailsResponse>("reveal-gift-details", {
+        code: parsed.data,
+        region: selectedRegion,
+      });
+
+      setRevealedDetails(response);
+      setStatus("revealed");
+    } catch (error) {
+      console.error(error);
+      setStatus("invalid");
+      toast.error("Could not reveal those details. Please check your invitation code.");
+    }
+  }
+
+  function resetRevealForRegion(region: GiftRegion) {
+    setSelectedRegion(region);
+    setStatus("idle");
+    setRevealedDetails(null);
+    setCopiedGiftField(null);
+  }
+
+  async function copyGiftField(field: string, value: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedGiftField(field);
+      window.setTimeout(() => {
+        setCopiedGiftField((current) => (current === field ? null : current));
+      }, 1800);
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not copy that field.");
+    }
+  }
+
   return (
     <PageShell
       id="gifts"
@@ -474,20 +573,151 @@ function GiftsSection() {
       <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-10 md:p-14 text-center max-w-2xl mx-auto mt-6">
         <Heart size={28} className="mx-auto text-coral" strokeWidth={1.5} />
         <p className="display-italic text-2xl md:text-3xl text-olive mt-6 leading-relaxed">
-          “If you wish to honour us with a gift, a contribution toward our honeymoon would mean the
-          world.”
+          If you wish to honour us with a gift, a contribution towards our future honeymoon would
+          mean a lot
         </p>
-        <div className="mx-auto h-px w-10 bg-olive/40 my-8" />
-        <p className="text-foreground/75 leading-relaxed">
-          We’re saving up for a slow trip across the Greek islands after the wedding — long lunches,
-          swims, and golden hours. Any contribution, big or small, helps make those memories.
-        </p>
-        <p className="eyebrow mt-10">Honeymoon Fund</p>
-        <p className="display-serif text-2xl text-olive mt-2">
-          Details will be shared with your invitation
-        </p>
+        <form onSubmit={onReveal} className="mt-12 space-y-6" noValidate>
+          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Gift currency">
+            {giftOptions.map((option) => {
+              const selected = selectedRegion === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => resetRevealForRegion(option.value)}
+                  className={`inline-flex items-center justify-center gap-2 border px-5 py-3 text-sm tracking-[0.16em] uppercase transition ${
+                    selected
+                      ? "border-olive bg-olive text-cream"
+                      : "border-olive/30 text-olive hover:bg-olive/5"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedRegion && (
+            <div className="space-y-5">
+              <label className="block text-left">
+                <span className="eyebrow block mb-2">Invitation code</span>
+                <input
+                  name="gift-code"
+                  value={manualCode}
+                  onChange={(event) => {
+                    setManualCode(event.target.value);
+                    setStatus("idle");
+                    setRevealedDetails(null);
+                    setCopiedGiftField(null);
+                  }}
+                  autoComplete="off"
+                  aria-invalid={status === "invalid"}
+                  aria-describedby={status === "invalid" ? "gift-code-error" : undefined}
+                  placeholder="w-xxxxxxxx"
+                  className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
+                />
+              </label>
+
+              {status === "invalid" && (
+                <div
+                  id="gift-code-error"
+                  className="border border-coral/25 bg-coral/5 px-4 py-3 text-sm text-foreground/75"
+                  role="alert"
+                >
+                  Please check the code from your invitation and try again.
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={status === "revealing"}
+                className="w-full inline-flex items-center justify-center gap-2 bg-olive text-cream py-3.5 text-sm tracking-[0.2em] uppercase rounded-sm hover:bg-olive/90 transition disabled:opacity-50"
+              >
+                {status === "revealing" ? <LockKeyhole size={16} /> : <Eye size={16} />}
+                {status === "revealing" ? "Checking code..." : "Click to Reveal"}
+              </button>
+            </div>
+          )}
+        </form>
+
+        {status === "revealed" && revealedDetails?.ok && (
+          <div className="mt-10 border border-olive/20 bg-olive/5 p-6 text-left">
+            {revealedDetails.region === "uk" ? (
+              <dl className="space-y-4">
+                <CopyableGiftField
+                  label="Account name"
+                  value={revealedDetails.bankDetails.accountName}
+                  fieldId="accountName"
+                  copiedField={copiedGiftField}
+                  onCopy={copyGiftField}
+                />
+                <CopyableGiftField
+                  label="Sort code"
+                  value={revealedDetails.bankDetails.sortCode}
+                  fieldId="sortCode"
+                  copiedField={copiedGiftField}
+                  onCopy={copyGiftField}
+                />
+                <CopyableGiftField
+                  label="Account number"
+                  value={revealedDetails.bankDetails.accountNumber}
+                  fieldId="accountNumber"
+                  copiedField={copiedGiftField}
+                  onCopy={copyGiftField}
+                />
+                <CopyableGiftField
+                  label="Reference"
+                  value={revealedDetails.bankDetails.reference}
+                  fieldId="reference"
+                  copiedField={copiedGiftField}
+                  onCopy={copyGiftField}
+                />
+              </dl>
+            ) : (
+              <p className="display-serif text-2xl text-olive text-center">
+                {revealedDetails.message}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </PageShell>
+  );
+}
+
+function CopyableGiftField({
+  label,
+  value,
+  fieldId,
+  copiedField,
+  onCopy,
+}: {
+  label: string;
+  value: string;
+  fieldId: string;
+  copiedField: string | null;
+  onCopy: (field: string, value: string) => void;
+}) {
+  const copied = copiedField === fieldId;
+
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-olive/15 pb-4 last:border-b-0 last:pb-0">
+      <div className="min-w-0">
+        <dt className="eyebrow">{label}</dt>
+        <dd className="mt-1 break-words text-xl text-olive">{value}</dd>
+      </div>
+      <button
+        type="button"
+        onClick={() => onCopy(fieldId, value)}
+        aria-label={`Copy ${label}`}
+        className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center border border-olive/30 text-olive transition hover:bg-olive/5"
+      >
+        {copied ? <Check size={16} /> : <Copy size={16} />}
+      </button>
+    </div>
   );
 }
 

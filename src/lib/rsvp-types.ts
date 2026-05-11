@@ -183,6 +183,39 @@ export type SubmitSongRequestResponse =
         | "server_not_configured";
     };
 
+export type GiftRegion = "uk" | "greece";
+
+export type RevealGiftDetailsRequest = {
+  code: string;
+  region: GiftRegion;
+};
+
+export type RevealGiftDetailsResponse =
+  | {
+      ok: true;
+      region: "uk";
+      bankDetails: {
+        accountName: string;
+        sortCode: string;
+        accountNumber: string;
+        reference: string;
+      };
+    }
+  | {
+      ok: true;
+      region: "greece";
+      message: string;
+    }
+  | {
+      ok: false;
+      error:
+        | "invalid_code"
+        | "disabled_code"
+        | "invalid_input"
+        | "invite_lookup_failed"
+        | "server_not_configured";
+    };
+
 export type GenerateInviteRequest = {
   notes?: string | null;
 };

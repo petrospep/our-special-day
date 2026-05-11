@@ -9,6 +9,9 @@ verify_jwt = false
 [functions.submit-song-request]
 verify_jwt = false
 
+[functions.reveal-gift-details]
+verify_jwt = false
+
 [functions.generate-invite]
 verify_jwt = false
 
