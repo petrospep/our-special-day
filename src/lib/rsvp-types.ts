@@ -248,6 +248,19 @@ export type DisableInviteResponse =
       error: "invalid_input" | "invite_disable_failed" | "not_found" | AdminFunctionError;
     };
 
+export type ResetInviteSubmissionRequest = {
+  code: string;
+};
+
+export type ResetInviteSubmissionResponse =
+  | {
+      ok: true;
+    }
+  | {
+      ok: false;
+      error: "invalid_input" | "invite_reset_failed" | "not_found" | AdminFunctionError;
+    };
+
 export type DeleteInviteRequest = {
   code: string;
   deleteUsed?: boolean;

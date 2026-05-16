@@ -692,7 +692,7 @@ function RsvpForm({
         <div className="border border-olive/20 bg-olive/5 p-4 text-sm text-foreground/75">
           {language === "en"
             ? "Your RSVP is currently marked as very likely. You can update it to accept or decline when you know."
-            : "Η απάντησή σας είναι προς το παρόν «μάλλον ναι». Μπορείτε να την αλλάξετε όταν είστε σίγουροι/ες."}
+            : "Η απάντησή σας είναι προς το παρόν «μάλλον ναι». Μπορείτε να την αλλάξετε όταν είστε σίγουρος/η."}
         </div>
       )}
       <fieldset>
@@ -720,11 +720,16 @@ function RsvpForm({
         <legend className="eyebrow mb-3">
           {language === "en" ? "Contact details" : "Στοιχεία επικοινωνίας"}
         </legend>
+        <p className="mb-4 text-sm text-foreground/65">
+          {language === "en"
+            ? "Please complete either email (to receive confirmation) or phone number."
+            : "Παρακαλούμε συμπληρώστε είτε email (για επιβεβαίωση) είτε τηλέφωνο."}
+        </p>
         <div className="grid sm:grid-cols-2 gap-3">
           <Input
             name="email"
             type="email"
-            label={language === "en" ? "Email (optional)" : "Email (προαιρετικό)"}
+            label={language === "en" ? "Email" : "Email"}
             error={errors.email}
             defaultValue={defaults?.email ?? ""}
             autoComplete="email"
@@ -732,7 +737,7 @@ function RsvpForm({
           <Input
             name="phoneNumber"
             type="tel"
-            label={language === "en" ? "Phone number (optional)" : "Τηλέφωνο (προαιρετικό)"}
+            label={language === "en" ? "Phone number" : "Τηλέφωνο"}
             error={errors.phoneNumber}
             defaultValue={defaults?.phoneNumber ?? ""}
             autoComplete="tel"
@@ -887,10 +892,10 @@ function SuccessPanel({ attending }: { attending: AttendanceChoice | null }) {
   const message = isMaybe
     ? language === "en"
       ? "We have marked you as very likely. Use your invitation code again when you are ready to accept or decline."
-      : "Κρατήσαμε την απάντησή σας ως «μάλλον ναι». Όταν είστε σίγουροι/ες, βάλτε ξανά τον κωδικό σας για να την αλλάξετε."
+      : "Κρατήσαμε την απάντησή σας ως «μάλλον ναι». Όταν είστε σίγουροι/η, βάλτε ξανά τον κωδικό σας για να την αλλάξετε."
     : isAttending
       ? language === "en"
-        ? "Your RSVP has been received. See you on 25 July in Athens."
+        ? "Your RSVP has been received. See you on the 25th of July in Athens!"
         : "Λάβαμε την απάντησή σας. Τα λέμε στις 25 Ιουλίου στην Αθήνα."
       : language === "en"
         ? "Thank you for letting us know. We will be thinking of you."
@@ -980,11 +985,7 @@ function SubmittedRsvpPanel({ rsvp }: { rsvp: SubmittedRsvpResponse }) {
               >
                 <span className="font-medium text-olive">
                   {guest.fullName}
-                  {guest.isSubmitter
-                    ? language === "en"
-                      ? " (submitter)"
-                      : " (άτομο επικοινωνίας)"
-                    : ""}
+                  {guest.isSubmitter ? (language === "en" ? "" : "") : ""}
                 </span>
                 {guest.under13 && (
                   <span className="text-sm text-foreground/65">
@@ -1111,15 +1112,21 @@ function GuestAgeFields({
 function Input({
   name,
   label,
+  helperText,
   error,
   className = "",
   ...rest
 }: React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   name: string;
+  helperText?: string;
   error?: string;
 }) {
   const errorId = `${name}-error`;
+  const helperId = `${name}-helper`;
+  const describedBy = [helperText ? helperId : undefined, error ? errorId : undefined]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <label className="block">
@@ -1127,10 +1134,15 @@ function Input({
       <input
         name={name}
         aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
+        aria-describedby={describedBy || undefined}
         {...rest}
         className={`w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground ${className}`}
       />
+      {helperText && (
+        <span id={helperId} className="mt-2 block text-sm text-foreground/60">
+          {helperText}
+        </span>
+      )}
       {error && (
         <span id={errorId} className="mt-2 block text-sm text-destructive" role="alert">
           {error}

@@ -8,7 +8,7 @@ const links = [
   { to: "/", hash: "events", label: { en: "Events", el: "Πρόγραμμα" } },
   { to: "/", hash: "rsvp", label: "RSVP" },
   { to: "/", hash: "music", label: { en: "Music", el: "Μουσική" } },
-  { to: "/", hash: "gifts", label: { en: "Gifts", el: "Δώρα" } },
+  { to: "/", hash: "gifts", label: { en: "Gifts", el: "Λίστα Γάμου" } },
   { to: "/", hash: "faq", label: { en: "FAQ", el: "Συχνές Ερωτήσεις" } },
 ] as const;
 

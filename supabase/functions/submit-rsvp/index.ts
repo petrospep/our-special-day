@@ -338,6 +338,7 @@ Deno.serve(async (req) => {
     attendanceStatus === null ||
     email === undefined ||
     phoneNumber === undefined ||
+    (email === null && phoneNumber === null) ||
     (email !== null &&
       (email.length > MAX_EMAIL_LENGTH || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) ||
     (phoneNumber !== null && phoneNumber.length > MAX_PHONE_LENGTH) ||

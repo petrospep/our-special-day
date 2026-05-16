@@ -158,7 +158,7 @@ function EventsSection() {
       subtitle={
         language === "en"
           ? "You are cordially invited to the wedding of Petros & Nikki in Athens, Greece."
-          : "Με μεγάλη χαρά σας προσκαλούμε στον γάμο του Πέτρου και της Nikki στην Αθήνα."
+          : "Με μεγάλη χαρά σας προσκαλούμε στον γάμο του Πέτρου και της Νίκης στην Αθήνα."
       }
     >
       <div className="space-y-8 mt-8">
@@ -256,8 +256,7 @@ const musicBlockCopy: Record<
     },
     rsvp_required: {
       title: "RSVP first, then send us your song",
-      message:
-        "Music requests open after you submit an attending RSVP. Once that is done, we will use your RSVP name automatically here.",
+      message: "Music requests open after you submit an attending RSVP.",
     },
     maybe: {
       title: "Please confirm first",
@@ -276,8 +275,7 @@ const musicBlockCopy: Record<
     },
     rsvp_required: {
       title: "Πρώτα η απάντηση, μετά το τραγούδι",
-      message:
-        "Η φόρμα για τραγούδια ανοίγει αφού απαντήσετε ότι θα έρθετε. Μετά θα χρησιμοποιήσουμε εδώ αυτόματα το όνομα από την απάντησή σας.",
+      message: "Η φόρμα για τραγούδια ανοίγει αφού απαντήσετε ότι θα έρθετε.",
     },
     maybe: {
       title: "Επιβεβαιώστε μας πρώτα",
@@ -486,7 +484,7 @@ function MusicSection({ inviteCode, refreshKey }: { inviteCode: string; refreshK
       subtitle={
         language === "en"
           ? "What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
-          : "Ποιο τραγούδι θα σας σηκώσει για χορό; Πείτε μας και θα φροντίσουμε να το μάθει ο DJ."
+          : "Ποιό τραγούδι θα σας σηκώσει για χορό; Πείτε μας και θα φροντίσουμε να το μάθει ο DJ."
       }
     >
       {status !== "ready" ? (
@@ -513,27 +511,18 @@ function MusicSection({ inviteCode, refreshKey }: { inviteCode: string; refreshK
                 />
               </label>
             )}
-            {status === "invalid" && (
+            {status === "invalid" && blockReason !== "not_attending" && (
               <div
                 id="music-code-error"
                 className={`border px-4 py-3 text-sm text-foreground/75 ${
-                  blockReason === "rsvp_required"
+                  blockReason === "rsvp_required" || blockReason === "maybe"
                     ? "border-olive/25 bg-olive/5"
                     : "border-coral/25 bg-coral/5"
                 }`}
                 role="alert"
               >
                 {blockReason === "rsvp_required" || blockReason === "maybe" ? (
-                  <div className="space-y-3">
-                    <p>
-                      {blockReason === "maybe"
-                        ? language === "en"
-                          ? "When you are ready, update your RSVP to accept and the music form will unlock straight away."
-                          : "Όταν είστε έτοιμοι, αλλάξτε την απάντησή σας σε «θα έρθω» και η φόρμα για τραγούδια θα ανοίξει αμέσως."
-                        : language === "en"
-                          ? "Please RSVP first. If you are joining us, the music form will unlock straight away."
-                          : "Παρακαλούμε απαντήστε πρώτα στο RSVP. Αν θα είστε μαζί μας, η φόρμα για τραγούδια θα ανοίξει αμέσως."}
-                    </p>
+                  <div className="flex justify-center">
                     <a
                       href="#rsvp"
                       className="inline-flex items-center justify-center border border-olive/40 px-4 py-2 text-xs tracking-[0.15em] uppercase text-olive hover:bg-olive/5 transition"
@@ -549,13 +538,9 @@ function MusicSection({ inviteCode, refreshKey }: { inviteCode: string; refreshK
                   </div>
                 ) : (
                   <p>
-                    {blockReason === "not_attending"
-                      ? language === "en"
-                        ? "If your plans change, please contact Petros directly and we can update your RSVP."
-                        : "Αν αλλάξει κάτι, επικοινωνήστε απευθείας με τον Πέτρο για να ενημερώσουμε την απάντησή σας."
-                      : language === "en"
-                        ? "Please check the code and try again after your attending RSVP has been submitted."
-                        : "Ελέγξτε τον κωδικό και δοκιμάστε ξανά αφού απαντήσετε ότι θα έρθετε."}
+                    {language === "en"
+                      ? "Please check the code and try again after your attending RSVP has been submitted."
+                      : "Ελέγξτε τον κωδικό και δοκιμάστε ξανά αφού απαντήσετε ότι θα έρθετε."}
                   </p>
                 )}
               </div>
@@ -582,12 +567,6 @@ function MusicSection({ inviteCode, refreshKey }: { inviteCode: string; refreshK
           className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-8 md:p-10 max-w-xl mx-auto mt-6 space-y-5"
         >
           <p className="text-sm text-foreground/75">{musicUsageMessage(musicUsage, language)}</p>
-          {musicGuestName && (
-            <p className="text-sm text-foreground/75">
-              {language === "en" ? "Requesting as" : "Θα σταλεί στο όνομα"}{" "}
-              <span className="font-medium text-olive">{musicGuestName}</span>
-            </p>
-          )}
           {musicUsage.left <= 0 ? (
             <div className="border border-olive/25 bg-olive/5 px-4 py-3 text-sm text-foreground/75">
               {language === "en"
@@ -667,63 +646,85 @@ function SongRequestList({
 /* ---------------- Gifts ---------------- */
 type GiftRevealStatus = "idle" | "revealing" | "revealed" | "invalid";
 
-const giftOptions: Array<{ value: GiftRegion; label: string }> = [
-  { value: "uk", label: "UK/GBP" },
-  { value: "greece", label: "Greece/EURO" },
+type RevealedGiftDetails = {
+  uk: Extract<RevealGiftDetailsResponse, { ok: true; region: "uk" }> | null;
+  greece: Extract<RevealGiftDetailsResponse, { ok: true; region: "greece" }> | null;
+};
+
+const giftRegions: Array<{ value: GiftRegion; label: Record<Language, string> }> = [
+  { value: "uk", label: { en: "UK/GBP", el: "UK/GBP" } },
+  { value: "greece", label: { en: "Greece/EURO", el: "Ελλάδα/EURO" } },
 ];
+
+const giftReferenceCopy: Record<Language, string> = {
+  en: "Please leave a reference or we won't know who to thank :)",
+  el: "Παρακαλούμε γράψτε μια αιτιολογία/μήνυμα για να ξέρουμε ποιον να ευχαριστήσουμε :)",
+};
 
 function GiftsSection({ inviteCode }: { inviteCode: string }) {
   const { language, translateValidation } = useLanguage();
-  const [selectedRegion, setSelectedRegion] = useState<GiftRegion | null>(null);
+  const urlCodeIsValid = inviteCodeSchema.safeParse(inviteCode).success;
   const [manualCode, setManualCode] = useState(inviteCode);
   const [status, setStatus] = useState<GiftRevealStatus>("idle");
-  const [revealedDetails, setRevealedDetails] = useState<RevealGiftDetailsResponse | null>(null);
+  const [revealedDetails, setRevealedDetails] = useState<RevealedGiftDetails>({
+    uk: null,
+    greece: null,
+  });
   const [copiedGiftField, setCopiedGiftField] = useState<string | null>(null);
 
   useEffect(() => {
-    if (inviteCodeSchema.safeParse(inviteCode).success) {
+    if (urlCodeIsValid) {
       setManualCode(inviteCode);
       setStatus("idle");
-      setRevealedDetails(null);
+      setRevealedDetails({ uk: null, greece: null });
       setCopiedGiftField(null);
-    }
-  }, [inviteCode]);
-
-  async function onReveal(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!selectedRegion) {
-      toast.error(
-        language === "en"
-          ? "Choose UK/GBP or Greece/EURO first."
-          : "Επιλέξτε πρώτα UK/GBP ή Ελλάδα/EURO.",
-      );
       return;
     }
 
-    const parsed = inviteCodeSchema.safeParse(manualCode);
+    setManualCode("");
+    setStatus("idle");
+    setRevealedDetails({ uk: null, greece: null });
+    setCopiedGiftField(null);
+  }, [inviteCode, urlCodeIsValid]);
+
+  async function revealGiftDetails(rawCode: string, showValidationToast = true) {
+    const parsed = inviteCodeSchema.safeParse(rawCode);
 
     if (!parsed.success) {
       setStatus("invalid");
-      setRevealedDetails(null);
+      setRevealedDetails({ uk: null, greece: null });
       setCopiedGiftField(null);
-      toast.error(
-        translateValidation(parsed.error.issues[0]?.message ?? "Enter a valid invitation code."),
-      );
+      if (showValidationToast) {
+        toast.error(
+          translateValidation(parsed.error.issues[0]?.message ?? "Enter a valid invitation code."),
+        );
+      }
       return;
     }
 
+    setManualCode(parsed.data);
     setStatus("revealing");
-    setRevealedDetails(null);
+    setRevealedDetails({ uk: null, greece: null });
     setCopiedGiftField(null);
 
     try {
-      const response = await callFunction<RevealGiftDetailsResponse>("reveal-gift-details", {
-        code: parsed.data,
-        region: selectedRegion,
-      });
+      const [ukDetails, greeceDetails] = await Promise.all(
+        giftRegions.map(({ value }) =>
+          callFunction<RevealGiftDetailsResponse>("reveal-gift-details", {
+            code: parsed.data,
+            region: value,
+          }),
+        ),
+      );
 
-      setRevealedDetails(response);
+      if (!ukDetails.ok || !greeceDetails.ok) {
+        throw new Error("Gift details could not be revealed.");
+      }
+
+      setRevealedDetails({
+        uk: ukDetails.region === "uk" ? ukDetails : null,
+        greece: greeceDetails.region === "greece" ? greeceDetails : null,
+      });
       setStatus("revealed");
     } catch (error) {
       console.error(error);
@@ -736,11 +737,19 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
     }
   }
 
-  function resetRevealForRegion(region: GiftRegion) {
-    setSelectedRegion(region);
-    setStatus("idle");
-    setRevealedDetails(null);
-    setCopiedGiftField(null);
+  useEffect(() => {
+    if (urlCodeIsValid) {
+      void revealGiftDetails(inviteCode, false);
+    }
+    // revealGiftDetails intentionally stays outside the dependency list so changing
+    // language does not re-run gift detail validation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteCode, urlCodeIsValid]);
+
+  function onReveal(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    void revealGiftDetails(manualCode);
   }
 
   async function copyGiftField(field: string, value: string) {
@@ -762,52 +771,23 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
     <PageShell
       id="gifts"
       theme="gifts"
-      eyebrow={language === "en" ? "With Love" : "Με αγάπη"}
-      title={language === "en" ? "A little note on gifts" : "Λίγα λόγια για τα δώρα"}
+      eyebrow={language === "en" ? "With Love" : undefined}
+      title={language === "en" ? "A little note on gifts" : "Προαιρετική Λίστα Γάμου"}
       subtitle={
-        language === "en"
-          ? "Your presence at our wedding is the greatest gift of all."
-          : "Η παρουσία σας στον γάμο μας είναι το μεγαλύτερο δώρο."
+        language === "en" ? "Your presence at our wedding is the greatest gift of all." : undefined
       }
     >
       <div className="bg-cream/70 backdrop-blur-sm border border-olive/20 p-10 md:p-14 text-center max-w-2xl mx-auto mt-6">
         <Heart size={28} className="mx-auto text-coral" strokeWidth={1.5} />
-        <p className="display-italic text-2xl md:text-3xl text-olive mt-6 leading-relaxed">
-          {language === "en"
-            ? "If you wish to honour us with a gift, a contribution towards our future honeymoon would mean a lot :)"
-            : "Αν θέλετε να μας κάνετε ένα δώρο, μια συνεισφορά για το ταξίδι του μέλιτος θα σήμαινε πολλά για εμάς :)"}
-        </p>
+        {language === "en" && (
+          <>
+            <p className="display-italic text-2xl md:text-3xl text-olive mt-6 leading-relaxed">
+              If you wish to honour us with a gift, a contribution to starting our new life together would mean the world :)
+            </p>
+          </>
+        )}
         <form onSubmit={onReveal} className="mt-12 space-y-6" noValidate>
-          <div
-            className="grid gap-3 sm:grid-cols-2"
-            role="radiogroup"
-            aria-label={language === "en" ? "Gift currency" : "Επιλογή χώρας και νομίσματος"}
-          >
-            {giftOptions.map((option) => {
-              const selected = selectedRegion === option.value;
-              const label =
-                language === "el" && option.value === "greece" ? "Ελλάδα/EURO" : option.label;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => resetRevealForRegion(option.value)}
-                  className={`inline-flex items-center justify-center gap-2 border px-5 py-3 text-sm tracking-[0.16em] uppercase transition ${
-                    selected
-                      ? "border-olive bg-olive text-cream"
-                      : "border-olive/30 text-olive hover:bg-olive/5"
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-
-          {selectedRegion && (
+          {!urlCodeIsValid && (
             <div className="space-y-5">
               <label className="block text-left">
                 <span className="eyebrow block mb-2">
@@ -819,7 +799,7 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                   onChange={(event) => {
                     setManualCode(event.target.value);
                     setStatus("idle");
-                    setRevealedDetails(null);
+                    setRevealedDetails({ uk: null, greece: null });
                     setCopiedGiftField(null);
                   }}
                   autoComplete="off"
@@ -829,18 +809,6 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                   className="w-full bg-transparent border-b border-olive/30 focus:border-olive outline-none py-3 text-foreground placeholder:text-muted-foreground"
                 />
               </label>
-
-              {status === "invalid" && (
-                <div
-                  id="gift-code-error"
-                  className="border border-coral/25 bg-coral/5 px-4 py-3 text-sm text-foreground/75"
-                  role="alert"
-                >
-                  {language === "en"
-                    ? "Please check the code from your invitation and try again."
-                    : "Ελέγξτε τον κωδικό από την πρόσκλησή σας και δοκιμάστε ξανά."}
-                </div>
-              )}
 
               <button
                 type="submit"
@@ -853,53 +821,79 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                     ? "Checking code..."
                     : "Έλεγχος κωδικού..."
                   : language === "en"
-                    ? "Click to Reveal"
+                    ? "Reveal gift details"
                     : "Εμφάνιση στοιχείων"}
               </button>
             </div>
           )}
+
+          {status === "invalid" && (
+            <div
+              id="gift-code-error"
+              className="border border-coral/25 bg-coral/5 px-4 py-3 text-sm text-foreground/75"
+              role="alert"
+            >
+              {language === "en"
+                ? "Please check the code from your invitation and try again."
+                : "Ελέγξτε τον κωδικό από την πρόσκλησή σας και δοκιμάστε ξανά."}
+            </div>
+          )}
         </form>
 
-        {status === "revealed" && revealedDetails?.ok && (
-          <div className="mt-10 border border-olive/20 bg-olive/5 p-6 text-left">
-            {revealedDetails.region === "uk" ? (
-              <dl className="space-y-4">
-                <CopyableGiftField
-                  label={language === "en" ? "Account name" : "Όνομα λογαριασμού"}
-                  value={revealedDetails.bankDetails.accountName}
-                  fieldId="accountName"
-                  copiedField={copiedGiftField}
-                  onCopy={copyGiftField}
-                />
-                <CopyableGiftField
-                  label={language === "en" ? "Sort code" : "Sort code"}
-                  value={revealedDetails.bankDetails.sortCode}
-                  fieldId="sortCode"
-                  copiedField={copiedGiftField}
-                  onCopy={copyGiftField}
-                />
-                <CopyableGiftField
-                  label={language === "en" ? "Account number" : "Αριθμός λογαριασμού"}
-                  value={revealedDetails.bankDetails.accountNumber}
-                  fieldId="accountNumber"
-                  copiedField={copiedGiftField}
-                  onCopy={copyGiftField}
-                />
-                <CopyableGiftField
-                  label={language === "en" ? "Reference" : "Αιτιολογία / μήνυμα"}
-                  value={revealedDetails.bankDetails.reference}
-                  fieldId="reference"
-                  copiedField={copiedGiftField}
-                  onCopy={copyGiftField}
-                />
-              </dl>
-            ) : (
-              <p className="display-serif text-2xl text-olive text-center">
-                {language === "en"
-                  ? revealedDetails.message
-                  : "Θα προστεθούν περισσότερες λεπτομέρειες σύντομα"}
-              </p>
-            )}
+        {status === "revealed" && (
+          <div className="mt-10 space-y-8 text-left">
+            <section>
+              <h3 className="display-serif mb-3 px-1 text-2xl text-olive">
+                {giftRegions[0].label[language]}
+              </h3>
+              {revealedDetails.uk && (
+                <dl className="space-y-3 border border-olive/20 bg-olive/5 p-4">
+                  <CopyableGiftField
+                    label={language === "en" ? "Account name" : "Όνομα λογαριασμού"}
+                    value={revealedDetails.uk.bankDetails.accountName}
+                    fieldId="uk-accountName"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "Sort code" : "Sort code"}
+                    value={revealedDetails.uk.bankDetails.sortCode}
+                    fieldId="uk-sortCode"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "Account number" : "Αριθμός λογαριασμού"}
+                    value={revealedDetails.uk.bankDetails.accountNumber}
+                    fieldId="uk-accountNumber"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "Reference" : "Αιτιολογία / μήνυμα"}
+                    value={giftReferenceCopy[language]}
+                    fieldId="uk-reference"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                </dl>
+              )}
+            </section>
+
+            <section>
+              <h3 className="display-serif mb-3 px-1 text-2xl text-olive">
+                {giftRegions[1].label[language]}
+              </h3>
+              {revealedDetails.greece && (
+                <div className="border border-olive/20 bg-olive/5 p-4">
+                  <p className="display-serif text-xl text-olive text-center">
+                    {language === "en"
+                      ? revealedDetails.greece.message
+                      : "Θα προστεθούν περισσότερες λεπτομέρειες σύντομα"}
+                  </p>
+                </div>
+              )}
+            </section>
           </div>
         )}
       </div>
@@ -924,18 +918,18 @@ function CopyableGiftField({
   const { language } = useLanguage();
 
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-olive/15 pb-4 last:border-b-0 last:pb-0">
+    <div className="flex items-start justify-between gap-3 border-b border-olive/15 pb-3 last:border-b-0 last:pb-0">
       <div className="min-w-0">
         <dt className="eyebrow">{label}</dt>
-        <dd className="mt-1 break-words text-xl text-olive">{value}</dd>
+        <dd className="mt-1 break-words text-base text-olive">{value}</dd>
       </div>
       <button
         type="button"
         onClick={() => onCopy(fieldId, value)}
         aria-label={`${language === "en" ? "Copy" : "Αντιγραφή"} ${label}`}
-        className="mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center border border-olive/30 text-olive transition hover:bg-olive/5"
+        className="mt-1 inline-flex h-8 w-8 shrink-0 items-center justify-center border border-olive/30 text-olive transition hover:bg-olive/5"
       >
-        {copied ? <Check size={16} /> : <Copy size={16} />}
+        {copied ? <Check size={14} /> : <Copy size={14} />}
       </button>
     </div>
   );

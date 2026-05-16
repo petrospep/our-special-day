@@ -88,17 +88,34 @@ const rsvpSubmitterSchema = z.object({
   lastName: requiredNameSchema("last name"),
 });
 
-export const rsvpFormSchema = z.object({
-  code: inviteCodeSchema,
-  submitter: rsvpSubmitterSchema,
-  guests: z.array(rsvpGuestSchema).max(9, "Guest count must be 10 or fewer."),
-  attendanceStatus: z.enum(["attending", "declined", "maybe"], {
-    required_error: "Choose whether you will attend.",
-    invalid_type_error: "Choose whether you will attend.",
-  }),
-  email: optionalEmailSchema,
-  phoneNumber: optionalPhoneSchema,
-});
+export const rsvpFormSchema = z
+  .object({
+    code: inviteCodeSchema,
+    submitter: rsvpSubmitterSchema,
+    guests: z.array(rsvpGuestSchema).max(9, "Guest count must be 10 or fewer."),
+    attendanceStatus: z.enum(["attending", "declined", "maybe"], {
+      required_error: "Choose whether you will attend.",
+      invalid_type_error: "Choose whether you will attend.",
+    }),
+    email: optionalEmailSchema,
+    phoneNumber: optionalPhoneSchema,
+  })
+  .superRefine((form, context) => {
+    if (!form.email && !form.phoneNumber) {
+      const message = "Enter an email address or phone number.";
+
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["email"],
+        message,
+      });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["phoneNumber"],
+        message,
+      });
+    }
+  });
 
 export const generateInviteSchema = z.object({
   notes: optionalTextSchema(1000, "Notes must be 1000 characters or fewer."),

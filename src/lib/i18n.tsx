@@ -15,6 +15,7 @@ const validationTranslations: Record<string, string> = {
   "first name must be 80 characters or fewer.": "Το όνομα πρέπει να είναι έως 80 χαρακτήρες.",
   "last name must be 80 characters or fewer.": "Το επώνυμο πρέπει να είναι έως 80 χαρακτήρες.",
   "Enter a valid email address.": "Γράψτε μια έγκυρη διεύθυνση email.",
+  "Enter an email address or phone number.": "Γράψτε email ή τηλέφωνο.",
   "Email must be 254 characters or fewer.": "Το email πρέπει να είναι έως 254 χαρακτήρες.",
   "Phone number must be 40 characters or fewer.": "Το τηλέφωνο πρέπει να είναι έως 40 χαρακτήρες.",
   "Enter an age.": "Γράψτε την ηλικία.",

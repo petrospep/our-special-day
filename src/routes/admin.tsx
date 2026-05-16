@@ -9,6 +9,7 @@ import {
   LogOut,
   Plus,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
   ShieldCheck,
   Trash2,
@@ -50,6 +51,7 @@ import type {
   DisableInviteResponse,
   GenerateInviteResponse,
   InvitationCodeRow,
+  ResetInviteSubmissionResponse,
   RsvpGuestRow,
   RsvpResponseRow,
 } from "@/lib/rsvp-types";
@@ -176,6 +178,7 @@ function AdminRoute() {
   const [loggingIn, setLoggingIn] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [disablingCode, setDisablingCode] = useState<string | null>(null);
+  const [resettingCode, setResettingCode] = useState<string | null>(null);
   const [deletingCode, setDeletingCode] = useState<string | null>(null);
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
   const [bulkAction, setBulkAction] = useState<BulkAction | null>(null);
@@ -423,6 +426,22 @@ function AdminRoute() {
       toast.error(error instanceof Error ? error.message : "Could not disable invite.");
     } finally {
       setDisablingCode(null);
+    }
+  }
+
+  async function onResetInviteSubmission(code: string) {
+    setResettingCode(code);
+
+    try {
+      const token = await getAccessToken();
+      await callFunction<ResetInviteSubmissionResponse>("reset-invite-submission", { code }, token);
+      toast.success("Invitation code can submit RSVP again.");
+      await loadAdminData(session);
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Could not reset invite submission.");
+    } finally {
+      setResettingCode(null);
     }
   }
 
@@ -919,6 +938,48 @@ function AdminRoute() {
                                   )}
                                   Disable
                                 </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      disabled={
+                                        !invite.used ||
+                                        status === "disabled" ||
+                                        resettingCode === invite.code
+                                      }
+                                    >
+                                      {resettingCode === invite.code ? (
+                                        <Loader2 className="animate-spin" />
+                                      ) : (
+                                        <RotateCcw />
+                                      )}
+                                      Reset RSVP
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Reset RSVP submission?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will unlock {invite.code} so it can submit an RSVP
+                                        again. The next submission for this code will replace the
+                                        previous RSVP response.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={(event) => {
+                                          event.preventDefault();
+                                          void onResetInviteSubmission(invite.code);
+                                        }}
+                                      >
+                                        Reset submission
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
