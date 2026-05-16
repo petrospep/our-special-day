@@ -96,13 +96,9 @@ const events = [
     },
     mapsUrl:
       "https://www.google.com/maps/search/?api=1&query=Saints%20Constantine%20and%20Helen%20Orthodox%20Cathedral%20of%20Glyfada%2C%20Glyfada%2C%20Athens%2C%20Greece",
-    dress: {
-      en: "Please arrive by 19:15.",
-      el: "Καλό είναι να είστε εκεί έως τις 19:15.",
-    },
     note: {
       en: "Please join us at the Church for the Holy Sacrament.",
-      el: "Παρακαλούμε να παρευρεθείτε στην Εκκλησία για το Ιερό Μυστήριο.",
+      el: "Σας μπερδέψαμε; Πατήστε πάνω στην διεύθυνση και θα σας εμφανιστεί ο χάρτης.",
     },
     ceremony: true,
   },
@@ -157,8 +153,8 @@ function EventsSection() {
       }
       subtitle={
         language === "en"
-          ? "You are cordially invited to the wedding of Petros & Nikki in Athens, Greece."
-          : "Με μεγάλη χαρά σας προσκαλούμε στον γάμο του Πέτρου και της Νίκης στην Αθήνα."
+          ? "You are cordially invited to our wedding."
+          : "Με μεγάλη χαρά σας προσκαλούμε στον γάμο μας."
       }
     >
       <div className="space-y-8 mt-8">
@@ -210,14 +206,16 @@ function EventsSection() {
                       : e.time[language]}
                 </p>
               </div>
-              <div className="flex gap-3 sm:col-span-2">
-                {e.ceremony ? (
-                  <Clock size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
-                ) : (
-                  <Wine size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
-                )}
-                <p className="text-sm">{e.dress[language]}</p>
-              </div>
+              {e.dress && (
+                <div className="flex gap-3 sm:col-span-2">
+                  {e.ceremony ? (
+                    <Clock size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
+                  ) : (
+                    <Wine size={18} className="text-olive shrink-0 mt-1" aria-hidden="true" />
+                  )}
+                  <p className="text-sm">{e.dress[language]}</p>
+                </div>
+              )}
             </div>
             <p className="display-italic text-lg text-olive/80 mt-8 border-t border-olive/15 pt-6">
               {e.note[language]}
@@ -480,11 +478,11 @@ function MusicSection({ inviteCode, refreshKey }: { inviteCode: string; refreshK
       id="music"
       theme="music"
       eyebrow={language === "en" ? "Music" : "Μουσική"}
-      title={language === "en" ? "Keep us dancing" : "Κρατήστε την πίστα γεμάτη"}
+      title={language === "en" ? "Keep us dancing" : "Έλα να ανεβαίνει το κέφι..."}
       subtitle={
         language === "en"
           ? "What song will get you on the dance floor? Tell us — we’ll make sure the DJ knows."
-          : "Ποιό τραγούδι θα σας σηκώσει για χορό; Πείτε μας και θα φροντίσουμε να το μάθει ο DJ."
+          : "Δεχόμαστε και παραγγελιές"
       }
     >
       {status !== "ready" ? (
@@ -782,7 +780,8 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
         {language === "en" && (
           <>
             <p className="display-italic text-2xl md:text-3xl text-olive mt-6 leading-relaxed">
-              If you wish to honour us with a gift, a contribution to starting our new life together would mean the world :)
+              If you wish to honour us with a gift, a contribution to starting our new life together
+              would mean the world :)
             </p>
           </>
         )}
@@ -961,7 +960,7 @@ const faqs = [
       ],
       el: [
         "Φυσικά! Προσθέστε τα στοιχεία τους και απαντήστε εκ μέρους τους με το κουμπί «Προσθήκη καλεσμένου».",
-        "Το ίδιο ισχύει και για οικογένειες: απαντήστε με τον ίδιο τρόπο για όλη την παρέα ή την οικογένειά σας.",
+        "Το ίδιο ισχύει και για οικογένειες: απαντήστε με τον ίδιο τρόπο.",
       ],
     },
   },
