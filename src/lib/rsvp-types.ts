@@ -183,7 +183,7 @@ export type SubmitSongRequestResponse =
         | "server_not_configured";
     };
 
-export type GiftRegion = "uk" | "greece";
+export type GiftRegion = "uk" | "international";
 
 export type RevealGiftDetailsRequest = {
   code: string;
@@ -196,6 +196,7 @@ export type RevealGiftDetailsResponse =
       region: "uk";
       bankDetails: {
         accountName: string;
+        bank: string;
         sortCode: string;
         accountNumber: string;
         reference: string;
@@ -203,8 +204,14 @@ export type RevealGiftDetailsResponse =
     }
   | {
       ok: true;
-      region: "greece";
-      message: string;
+      region: "international";
+      bankDetails: {
+        accountName: string;
+        bank: string;
+        iban: string;
+        bicSwift: string;
+        reference: string;
+      };
     }
   | {
       ok: false;

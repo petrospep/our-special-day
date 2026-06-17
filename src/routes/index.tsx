@@ -646,12 +646,18 @@ type GiftRevealStatus = "idle" | "revealing" | "revealed" | "invalid";
 
 type RevealedGiftDetails = {
   uk: Extract<RevealGiftDetailsResponse, { ok: true; region: "uk" }> | null;
-  greece: Extract<RevealGiftDetailsResponse, { ok: true; region: "greece" }> | null;
+  international: Extract<RevealGiftDetailsResponse, { ok: true; region: "international" }> | null;
 };
 
 const giftRegions: Array<{ value: GiftRegion; label: Record<Language, string> }> = [
-  { value: "uk", label: { en: "UK/GBP", el: "UK/GBP" } },
-  { value: "greece", label: { en: "Greece/EURO", el: "Ελλάδα/EURO" } },
+  {
+    value: "uk",
+    label: { en: "UK bank transfer", el: "Τραπεζική μεταφορά εντός Ηνωμένου Βασίλειου" },
+  },
+  {
+    value: "international",
+    label: { en: "International transfer", el: "Διεθνής μεταφορά" },
+  },
 ];
 
 const giftReferenceCopy: Record<Language, string> = {
@@ -666,7 +672,7 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
   const [status, setStatus] = useState<GiftRevealStatus>("idle");
   const [revealedDetails, setRevealedDetails] = useState<RevealedGiftDetails>({
     uk: null,
-    greece: null,
+    international: null,
   });
   const [copiedGiftField, setCopiedGiftField] = useState<string | null>(null);
 
@@ -674,14 +680,14 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
     if (urlCodeIsValid) {
       setManualCode(inviteCode);
       setStatus("idle");
-      setRevealedDetails({ uk: null, greece: null });
+      setRevealedDetails({ uk: null, international: null });
       setCopiedGiftField(null);
       return;
     }
 
     setManualCode("");
     setStatus("idle");
-    setRevealedDetails({ uk: null, greece: null });
+    setRevealedDetails({ uk: null, international: null });
     setCopiedGiftField(null);
   }, [inviteCode, urlCodeIsValid]);
 
@@ -690,7 +696,7 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
 
     if (!parsed.success) {
       setStatus("invalid");
-      setRevealedDetails({ uk: null, greece: null });
+      setRevealedDetails({ uk: null, international: null });
       setCopiedGiftField(null);
       if (showValidationToast) {
         toast.error(
@@ -702,11 +708,11 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
 
     setManualCode(parsed.data);
     setStatus("revealing");
-    setRevealedDetails({ uk: null, greece: null });
+    setRevealedDetails({ uk: null, international: null });
     setCopiedGiftField(null);
 
     try {
-      const [ukDetails, greeceDetails] = await Promise.all(
+      const [ukDetails, internationalDetails] = await Promise.all(
         giftRegions.map(({ value }) =>
           callFunction<RevealGiftDetailsResponse>("reveal-gift-details", {
             code: parsed.data,
@@ -715,13 +721,14 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
         ),
       );
 
-      if (!ukDetails.ok || !greeceDetails.ok) {
+      if (!ukDetails.ok || !internationalDetails.ok) {
         throw new Error("Gift details could not be revealed.");
       }
 
       setRevealedDetails({
         uk: ukDetails.region === "uk" ? ukDetails : null,
-        greece: greeceDetails.region === "greece" ? greeceDetails : null,
+        international:
+          internationalDetails.region === "international" ? internationalDetails : null,
       });
       setStatus("revealed");
     } catch (error) {
@@ -798,7 +805,7 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
                   onChange={(event) => {
                     setManualCode(event.target.value);
                     setStatus("idle");
-                    setRevealedDetails({ uk: null, greece: null });
+                    setRevealedDetails({ uk: null, international: null });
                     setCopiedGiftField(null);
                   }}
                   autoComplete="off"
@@ -848,9 +855,16 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
               {revealedDetails.uk && (
                 <dl className="space-y-3 border border-olive/20 bg-olive/5 p-4">
                   <CopyableGiftField
-                    label={language === "en" ? "Account name" : "Όνομα λογαριασμού"}
+                    label={language === "en" ? "Account holder" : "Όνομα δικαιούχου"}
                     value={revealedDetails.uk.bankDetails.accountName}
                     fieldId="uk-accountName"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "Bank" : "Τράπεζα"}
+                    value={revealedDetails.uk.bankDetails.bank}
+                    fieldId="uk-bank"
                     copiedField={copiedGiftField}
                     onCopy={copyGiftField}
                   />
@@ -883,14 +897,44 @@ function GiftsSection({ inviteCode }: { inviteCode: string }) {
               <h3 className="display-serif mb-3 px-1 text-2xl text-olive">
                 {giftRegions[1].label[language]}
               </h3>
-              {revealedDetails.greece && (
-                <div className="border border-olive/20 bg-olive/5 p-4">
-                  <p className="display-serif text-xl text-olive text-center">
-                    {language === "en"
-                      ? revealedDetails.greece.message
-                      : "Θα προστεθούν περισσότερες λεπτομέρειες σύντομα"}
-                  </p>
-                </div>
+              {revealedDetails.international && (
+                <dl className="space-y-3 border border-olive/20 bg-olive/5 p-4">
+                  <CopyableGiftField
+                    label={language === "en" ? "Account holder" : "Όνομα δικαιούχου"}
+                    value={revealedDetails.international.bankDetails.accountName}
+                    fieldId="international-accountName"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "Bank" : "Τράπεζα"}
+                    value={revealedDetails.international.bankDetails.bank}
+                    fieldId="international-bank"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "IBAN" : "IBAN"}
+                    value={revealedDetails.international.bankDetails.iban}
+                    fieldId="international-iban"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "BIC/SWIFT" : "BIC/SWIFT"}
+                    value={revealedDetails.international.bankDetails.bicSwift}
+                    fieldId="international-bicSwift"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                  <CopyableGiftField
+                    label={language === "en" ? "Reference" : "Αιτιολογία / μήνυμα"}
+                    value={giftReferenceCopy[language]}
+                    fieldId="international-reference"
+                    copiedField={copiedGiftField}
+                    onCopy={copyGiftField}
+                  />
+                </dl>
               )}
             </section>
           </div>

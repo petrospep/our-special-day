@@ -3,7 +3,7 @@ import { handleCors, withCors } from "../_shared/cors.ts";
 import { json, readJson } from "../_shared/json.ts";
 import { isValidInviteCode } from "../_shared/invite-code-word-pool.ts";
 
-type GiftRegion = "uk" | "greece";
+type GiftRegion = "uk" | "international";
 
 type RevealGiftDetailsBody = {
   code?: unknown;
@@ -22,7 +22,7 @@ function normalizeCode(value: unknown) {
 }
 
 function normalizeRegion(value: unknown): GiftRegion | null {
-  return value === "uk" || value === "greece" ? value : null;
+  return value === "uk" || value === "international" ? value : null;
 }
 
 function invalidInput() {
@@ -97,12 +97,18 @@ Deno.serve(async (req) => {
     );
   }
 
-  if (region === "greece") {
+  if (region === "international") {
     return withCors(
       json({
         ok: true,
         region,
-        message: "More details to be added later",
+        bankDetails: {
+          accountName: "PETROS PEPPAS & Nikki Georgiadou",
+          bank: "Revolut",
+          iban: "GB30 REVO 2301 6310 0064 92",
+          bicSwift: "REVOGB21",
+          reference: "Please leave a reference or we won't know who to thank :)",
+        },
       }),
       req,
     );
@@ -113,9 +119,10 @@ Deno.serve(async (req) => {
       ok: true,
       region,
       bankDetails: {
-        accountName: "NIKKI GEORGIADOU",
-        sortCode: "11-67-22",
-        accountNumber: "34207560",
+        accountName: "PETROS PEPPAS & Nikki Georgiadou",
+        bank: "Revolut",
+        sortCode: "23-01-63",
+        accountNumber: "10006492",
         reference: "Please leave a reference or we won't know who to thank :)",
       },
     }),
